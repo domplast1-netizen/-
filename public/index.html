@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Тихая гавань — бесплатная психологическая поддержка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#1C1F2E;--ink-light:#4A4E63;--ink-muted:#8B8FA8;
+  --cream:#F5F2EC;--cream-dark:#EDE9E0;
+  --lavender:#C9C4E8;--lavender-deep:#7B72B8;
+  --sage:#A8BFB0;--sage-deep:#4A7A5E;
+  --warm-white:#FDFCF9;--card-bg:#FFFFFF;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Inter',system-ui,sans-serif;
+}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);font-size:16px;line-height:1.7;overflow-x:hidden;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.25rem 4rem;background:rgba(245,242,236,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(28,31,46,.06);}
+.nav-logo{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--ink);text-decoration:none;}
+.nav-logo span{color:var(--lavender-deep);}
+.nav-links{display:flex;gap:2rem;align-items:center;}
+.nav-links a{font-size:13px;color:var(--ink-light);text-decoration:none;transition:color .2s;}
+.nav-links a:hover{color:var(--ink);}
+.nav-cta{background:var(--ink)!important;color:var(--cream)!important;padding:8px 20px!important;border-radius:40px!important;font-weight:500!important;}
+.nav-cta:hover{background:var(--lavender-deep)!important;}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8rem 2rem 5rem;text-align:center;position:relative;overflow:hidden;}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;opacity:.4;}
+.orb1{width:520px;height:520px;background:var(--lavender);top:-120px;right:-100px;}
+.orb2{width:420px;height:420px;background:var(--sage);bottom:-60px;left:-90px;}
+.orb3{width:300px;height:300px;background:#E8D5C4;top:42%;left:28%;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--lavender-deep);background:rgba(123,114,184,.1);padding:6px 16px;border-radius:40px;margin-bottom:2rem;}
+.hero-badge::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:var(--lavender-deep);}
+.hero h1{font-family:var(--serif);font-size:clamp(48px,7vw,88px);font-weight:500;line-height:1.05;color:var(--ink);max-width:800px;margin-bottom:1.75rem;}
+.hero h1 em{font-style:italic;color:var(--lavender-deep);}
+.hero-sub{font-size:17px;font-weight:300;color:var(--ink-light);max-width:420px;line-height:1.75;margin-bottom:3rem;}
+.hero-actions{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+.btn-primary{background:var(--ink);color:var(--cream);border:none;border-radius:48px;padding:16px 36px;font-size:15px;font-weight:500;font-family:var(--sans);cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary:hover{background:var(--lavender-deep);transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--ink-light);border:1px solid rgba(28,31,46,.2);border-radius:48px;padding:15px 28px;font-size:15px;font-family:var(--sans);cursor:pointer;text-decoration:none;transition:border-color .2s,color .2s;}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink);}
+.hero-trust{margin-top:4rem;display:flex;gap:2.5rem;flex-wrap:wrap;justify-content:center;}
+.trust-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-muted);}
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--sage-deep);}
+
+/* SECTIONS */
+section{padding:6rem 2rem;}
+.container{max-width:1100px;margin:0 auto;}
+.sec-label{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--lavender-deep);margin-bottom:1rem;}
+.sec-title{font-family:var(--serif);font-size:clamp(32px,4vw,52px);font-weight:500;line-height:1.1;color:var(--ink);margin-bottom:1.25rem;}
+.sec-title em{font-style:italic;color:var(--lavender-deep);}
+.sec-body{font-size:16px;font-weight:300;color:var(--ink-light);max-width:500px;line-height:1.8;margin-bottom:3rem;}
+
+/* SITUATIONS */
+.situations{background:var(--warm-white);}
+.sit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:rgba(28,31,46,.08);border:1px solid rgba(28,31,46,.08);border-radius:20px;overflow:hidden;}
+.sit-card{background:var(--warm-white);padding:2rem 1.75rem;transition:background .2s;}
+.sit-card:hover{background:var(--cream);}
+.sit-icon{font-size:28px;margin-bottom:1rem;display:block;}
+.sit-card h3{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:.5rem;}
+.sit-card p{font-size:13px;color:var(--ink-light);line-height:1.65;font-weight:300;}
+
+/* ARTICLES */
+.articles{background:var(--cream);}
+.art-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;}
+.art-card{background:var(--card-bg);border-radius:20px;overflow:hidden;border:1px solid rgba(28,31,46,.07);transition:transform .2s,box-shadow .2s;cursor:pointer;}
+.art-card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(28,31,46,.08);}
+.art-top{height:150px;display:flex;align-items:center;justify-content:center;font-size:48px;}
+.art-top.c1{background:linear-gradient(135deg,#E8E4F8,#D4CEEE);}
+.art-top.c2{background:linear-gradient(135deg,#E2EFE7,#C8DED0);}
+.art-top.c3{background:linear-gradient(135deg,#FBF0E4,#F0DCC8);}
+.art-top.c4{background:linear-gradient(135deg,#E8F0FB,#CCDAF5);}
+.art-body{padding:1.5rem;}
+.art-tag{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--lavender-deep);margin-bottom:.5rem;display:block;}
+.art-card h3{font-family:var(--serif);font-size:21px;font-weight:500;line-height:1.2;margin-bottom:.6rem;}
+.art-card p{font-size:13px;color:var(--ink-light);line-height:1.7;font-weight:300;}
+.art-read{display:inline-flex;align-items:center;gap:6px;margin-top:1rem;font-size:13px;font-weight:500;color:var(--lavender-deep);}
+.art-read svg{width:14px;height:14px;transition:transform .15s;}
+.art-card:hover .art-read svg{transform:translateX(3px);}
+
+/* HOW */
+.how{background:var(--ink);}
+.how .sec-label{color:var(--lavender);}
+.how .sec-title{color:var(--cream);}
+.how .sec-title em{color:var(--lavender);}
+.how .sec-body{color:rgba(245,242,236,.6);}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2rem;}
+.step{padding:2rem 1.75rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;}
+.step-n{font-family:var(--serif);font-size:64px;font-weight:400;color:rgba(201,196,232,.18);line-height:1;margin-bottom:1rem;display:block;}
+.step h3{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--cream);margin-bottom:.5rem;}
+.step p{font-size:14px;color:rgba(245,242,236,.5);font-weight:300;line-height:1.7;}
+
+/* ══ CHAT SECTION ══ */
+.chat-section{background:var(--cream-dark);}
+.chat-layout{display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;margin-top:3rem;}
+.chat-meta h3{font-family:var(--serif);font-size:36px;font-weight:500;line-height:1.15;margin-bottom:1rem;}
+.chat-meta h3 em{font-style:italic;color:var(--lavender-deep);}
+.chat-meta p{font-size:15px;color:var(--ink-light);font-weight:300;line-height:1.8;margin-bottom:1.5rem;}
+
+/* chosen consultant pill */
+.chosen-pill{display:flex;align-items:center;gap:12px;background:var(--card-bg);border:1px solid rgba(28,31,46,.08);border-radius:16px;padding:12px 16px;margin-bottom:1.25rem;}
+.chosen-pill svg{width:44px;height:44px;flex-shrink:0;}
+.chosen-pill-info h4{font-size:14px;font-weight:500;margin-bottom:2px;}
+.chosen-pill-info span{font-size:12px;color:var(--ink-muted);}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--sage-deep);animation:pulse 2s infinite;display:inline-block;margin-right:5px;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.35);}}
+
+/* CHAT WIDGET */
+.chat-widget{background:var(--card-bg);border-radius:28px;border:1px solid rgba(28,31,46,.08);box-shadow:0 40px 100px rgba(28,31,46,.13);overflow:hidden;display:flex;flex-direction:column;height:640px;}
+
+/* === SCREEN: NAME === */
+.screen-name{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 2rem;text-align:center;}
+.screen-name h3{font-family:var(--serif);font-size:30px;font-weight:500;margin-bottom:.4rem;}
+.screen-name p{font-size:14px;color:var(--ink-muted);margin-bottom:2rem;line-height:1.6;}
+.name-row{display:flex;gap:8px;width:100%;max-width:340px;}
+.name-row input{flex:1;border:1px solid rgba(28,31,46,.15);border-radius:14px;padding:13px 16px;font-size:15px;font-family:var(--sans);color:var(--ink);background:var(--cream);outline:none;}
+.name-row input:focus{border-color:var(--lavender-deep);}
+.name-row button{background:var(--ink);color:var(--cream);border:none;border-radius:14px;padding:13px 22px;font-size:14px;font-family:var(--sans);cursor:pointer;transition:background .2s;white-space:nowrap;}
+.name-row button:hover{background:var(--lavender-deep);}
+.name-hint{font-size:11px;color:var(--ink-muted);margin-top:.85rem;}
+
+/* === SCREEN: PICK CHARACTER === */
+.screen-pick{flex:1;display:none;flex-direction:column;padding:2rem;}
+.screen-pick h3{font-family:var(--serif);font-size:24px;font-weight:500;text-align:center;margin-bottom:.4rem;}
+.screen-pick .pick-sub{font-size:13px;color:var(--ink-muted);text-align:center;margin-bottom:1.5rem;}
+.chars-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;}
+.char-card{border:2px solid rgba(28,31,46,.08);border-radius:20px;padding:1.25rem 1rem;display:flex;flex-direction:column;align-items:center;text-align:center;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s;background:var(--cream);position:relative;overflow:hidden;}
+.char-card:hover{border-color:var(--lavender-deep);transform:translateY(-2px);box-shadow:0 12px 32px rgba(123,114,184,.15);}
+.char-card.selected{border-color:var(--lavender-deep);background:#F4F2FD;}
+.char-card svg{width:72px;height:72px;margin-bottom:.75rem;}
+.char-card h4{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:.25rem;}
+.char-card p{font-size:12px;color:var(--ink-muted);line-height:1.5;font-weight:300;}
+.char-tag{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--lavender-deep);margin-bottom:.4rem;}
+.pick-btn{margin-top:1.25rem;width:100%;background:var(--ink);color:var(--cream);border:none;border-radius:14px;padding:13px;font-size:14px;font-family:var(--sans);cursor:pointer;transition:background .2s;font-weight:500;}
+.pick-btn:hover{background:var(--lavender-deep);}
+.pick-btn:disabled{opacity:.35;cursor:default;}
+
+/* === SCREEN: CHAT === */
+.screen-chat{display:none;flex-direction:column;height:100%;}
+.chat-hdr{display:flex;align-items:center;gap:12px;padding:1rem 1.25rem;border-bottom:1px solid rgba(28,31,46,.07);flex-shrink:0;}
+.chat-hdr svg{width:44px;height:44px;flex-shrink:0;border-radius:50%;overflow:hidden;}
+.chat-hdr-info h4{font-size:14px;font-weight:500;margin-bottom:1px;}
+.chat-hdr-info .hdr-char{font-size:11px;color:var(--lavender-deep);font-weight:500;letter-spacing:.04em;}
+.chat-hdr-info .hdr-status{font-size:11px;color:var(--sage-deep);display:flex;align-items:center;gap:4px;margin-top:1px;}
+.hdr-back{margin-left:auto;background:none;border:1px solid rgba(28,31,46,.12);border-radius:40px;padding:5px 14px;font-size:12px;color:var(--ink-muted);cursor:pointer;font-family:var(--sans);transition:all .2s;}
+.hdr-back:hover{border-color:var(--ink);color:var(--ink);}
+
+.chat-msgs{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:10px;background:var(--cream);}
+.chat-msgs::-webkit-scrollbar{width:4px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:rgba(28,31,46,.1);border-radius:4px;}
+
+.msg-row{display:flex;gap:8px;}
+.msg-row.usr{flex-direction:row-reverse;}
+.msg-ava{width:32px;height:32px;flex-shrink:0;margin-top:2px;}
+.msg-ava svg{width:32px;height:32px;border-radius:50%;}
+.usr-ava{width:32px;height:32px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--cream);font-weight:500;flex-shrink:0;margin-top:2px;}
+.bubble{max-width:75%;padding:11px 15px;font-size:14px;line-height:1.65;border-radius:20px;}
+.bubble.ai{background:var(--card-bg);color:var(--ink);border-bottom-left-radius:4px;border:1px solid rgba(28,31,46,.07);}
+.bubble.usr{background:var(--ink);color:var(--cream);border-bottom-right-radius:4px;}
+.typing-row{display:none;gap:8px;align-items:flex-end;}
+.typing-bubbl{display:flex;gap:5px;padding:12px 16px;background:var(--card-bg);border-radius:20px;border-bottom-left-radius:4px;border:1px solid rgba(28,31,46,.07);}
+.typing-bubbl span{width:7px;height:7px;border-radius:50%;background:var(--ink-muted);animation:tdot 1.2s infinite;display:block;}
+.typing-bubbl span:nth-child(2){animation-delay:.2s;}
+.typing-bubbl span:nth-child(3){animation-delay:.4s;}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-7px);}}
+
+.chat-ftr{flex-shrink:0;}
+.chat-disc{font-size:11px;color:var(--ink-muted);text-align:center;padding:5px 1rem;background:var(--card-bg);border-top:1px solid rgba(28,31,46,.05);}
+.chat-inp-row{display:flex;gap:8px;padding:.9rem 1rem;background:var(--card-bg);border-top:1px solid rgba(28,31,46,.07);align-items:flex-end;}
+.chat-inp-row textarea{flex:1;border:1px solid rgba(28,31,46,.12);border-radius:16px;padding:10px 14px;font-size:14px;font-family:var(--sans);resize:none;outline:none;max-height:110px;background:var(--cream);color:var(--ink);line-height:1.55;}
+.chat-inp-row textarea:focus{border-color:var(--lavender-deep);}
+.send-btn{width:42px;height:42px;border-radius:50%;background:var(--ink);color:var(--cream);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;}
+.send-btn:hover{background:var(--lavender-deep);}
+.send-btn:disabled{opacity:.35;cursor:default;}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;z-index:200;background:rgba(28,31,46,.5);backdrop-filter:blur(4px);overflow-y:auto;padding:2rem 1rem;}
+.modal-ov.open{display:flex;align-items:flex-start;justify-content:center;}
+.modal-box{background:var(--warm-white);border-radius:24px;max-width:680px;width:100%;padding:3rem;margin:auto;position:relative;animation:mIn .25s ease;}
+@keyframes mIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+.modal-x{position:absolute;top:1.5rem;right:1.5rem;background:var(--cream);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--ink-light);}
+.modal-x:hover{background:var(--cream-dark);}
+.modal-tag{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--lavender-deep);margin-bottom:.75rem;display:block;}
+.modal-box h2{font-family:var(--serif);font-size:34px;font-weight:500;line-height:1.15;margin-bottom:1.75rem;}
+.modal-body{font-size:15px;line-height:1.85;color:var(--ink-light);font-weight:300;}
+.modal-body h4{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--ink);margin:1.75rem 0 .5rem;}
+.modal-body p{margin-bottom:1rem;}
+.modal-body ul{padding-left:1.25rem;margin-bottom:1rem;}
+.modal-body ul li{margin-bottom:.5rem;}
+.modal-body .hl{background:rgba(123,114,184,.08);border-left:3px solid var(--lavender-deep);padding:1rem 1.25rem;border-radius:0 8px 8px 0;margin:1.5rem 0;font-style:italic;color:var(--ink);}
+
+/* FOOTER */
+footer{background:var(--ink);color:rgba(245,242,236,.5);padding:3rem 2rem;text-align:center;}
+.f-logo{font-family:var(--serif);font-size:24px;font-weight:500;color:var(--cream);margin-bottom:1rem;display:block;}
+.f-logo span{color:var(--lavender);}
+footer p{font-size:13px;line-height:1.7;max-width:500px;margin:0 auto .75rem;}
+.hotline{display:inline-block;margin-top:1rem;font-size:13px;color:var(--sage);border:1px solid rgba(168,191,176,.3);padding:6px 16px;border-radius:40px;text-decoration:none;}
+
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.vis{opacity:1;transform:none;}
+
+@media(max-width:900px){
+  nav{padding:1rem 1.5rem;}
+  .nav-links{display:none;}
+  .chat-layout{grid-template-columns:1fr;gap:2rem;}
+  .chat-widget{height:580px;}
+  .modal-box{padding:2rem 1.25rem;}
+  section{padding:4rem 1.25rem;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">Тихая<span>&nbsp;гавань</span></a>
+  <div class="nav-links">
+    <a href="#situations">Когда нужна помощь</a>
+    <a href="#articles">Советы</a>
+    <a href="#chat" class="nav-cta">Поговорить</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+  <div class="hero-badge">Бесплатная поддержка 24/7</div>
+  <h1>Когда не с кем<br><em>поговорить</em> —<br>мы рядом</h1>
+  <p class="hero-sub">Выберите того, с кем вам комфортнее всего. Без осуждения, без регистрации — просто поговорите.</p>
+  <div class="hero-actions">
+    <a href="#chat" class="btn-primary">Начать разговор <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <a href="#articles" class="btn-ghost">Читать советы</a>
+  </div>
+  <div class="hero-trust">
+    <div class="trust-item"><span class="tdot"></span>Без регистрации</div>
+    <div class="trust-item"><span class="tdot"></span>Анонимно</div>
+    <div class="trust-item"><span class="tdot"></span>На базе Claude AI</div>
+    <div class="trust-item"><span class="tdot"></span>Полностью бесплатно</div>
+  </div>
+</section>
+
+<!-- SITUATIONS -->
+<section class="situations" id="situations">
+  <div class="container">
+    <div class="sec-label reveal">Вам может помочь, если...</div>
+    <h2 class="sec-title reveal">Вы не одни в этом</h2>
+    <p class="sec-body reveal">Каждый из нас проходит через трудные периоды. Здесь можно говорить об этом открыто — с тем, с кем вам комфортно.</p>
+    <div class="sit-grid reveal">
+      <div class="sit-card"><span class="sit-icon">🌫️</span><h3>Тревога и страх</h3><p>Мысли не останавливаются, сердце бьётся быстрее, будущее кажется пугающим</p></div>
+      <div class="sit-card"><span class="sit-icon">🌙</span><h3>Одиночество</h3><p>Вокруг люди, но не с кем поговорить по-настоящему, некому открыться</p></div>
+      <div class="sit-card"><span class="sit-icon">🔥</span><h3>Выгорание</h3><p>Усталость накопилась, нет сил даже на то, что раньше приносило радость</p></div>
+      <div class="sit-card"><span class="sit-icon">💔</span><h3>Потеря и горе</h3><p>Расставание, потеря близкого, конец чего-то важного в жизни</p></div>
+      <div class="sit-card"><span class="sit-icon">🌀</span><h3>Непонимание близких</h3><p>Конфликты дома или на работе, ощущение что вас не слышат</p></div>
+      <div class="sit-card"><span class="sit-icon">🌧️</span><h3>Просто плохо</h3><p>Иногда не знаешь что происходит — просто тяжело, хочется выговориться</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ARTICLES -->
+<section class="articles" id="articles">
+  <div class="container">
+    <div class="sec-label reveal">Советы психологов</div>
+    <h2 class="sec-title reveal">Читайте и <em>применяйте</em></h2>
+    <p class="sec-body reveal">Короткие материалы, основанные на доказательной психологии. Практично, без воды.</p>
+    <div class="art-grid">
+      <div class="art-card reveal" onclick="openArt('anxiety')">
+        <div class="art-top c1">🌬️</div>
+        <div class="art-body"><span class="art-tag">Тревога</span><h3>Что делать, когда накрывает тревога прямо сейчас</h3><p>Пять техник, которые работают за считанные минуты.</p><span class="art-read">Читать <svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </div>
+      <div class="art-card reveal" onclick="openArt('feelings')">
+        <div class="art-top c2">🌿</div>
+        <div class="art-body"><span class="art-tag">Эмоции</span><h3>Как говорить о своих чувствах, когда слов не хватает</h3><p>Просить о помощи непросто. Вот с чего начать.</p><span class="art-read">Читать <svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </div>
+      <div class="art-card reveal" onclick="openArt('burnout')">
+        <div class="art-top c3">🕯️</div>
+        <div class="art-body"><span class="art-tag">Выгорание</span><h3>Выгорание: как понять, что оно уже здесь</h3><p>Разбираемся, как отличить усталость от выгорания.</p><span class="art-read">Читать <svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </div>
+      <div class="art-card reveal" onclick="openArt('sleep')">
+        <div class="art-top c4">🌙</div>
+        <div class="art-body"><span class="art-tag">Сон</span><h3>Почему тревожные мысли приходят ночью</h3><p>Ночью всё кажется хуже. Объясняем почему.</p><span class="art-read">Читать <svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="how">
+  <div class="container">
+    <div class="sec-label reveal">Как это работает</div>
+    <h2 class="sec-title reveal">Три шага и <em>вы уже не одни</em></h2>
+    <p class="sec-body reveal">Никаких регистраций и форм. Открываете страницу — и уже можно говорить.</p>
+    <div class="steps">
+      <div class="step reveal"><span class="step-n">1</span><h3>Напишите своё имя</h3><p>Любое — настоящее или выдуманное. Нам важно только как к вам обращаться.</p></div>
+      <div class="step reveal"><span class="step-n">2</span><h3>Выберите собеседника</h3><p>Котик, собачка, капибара или человек-психолог. Каждый со своим характером.</p></div>
+      <div class="step reveal"><span class="step-n">3</span><h3>Просто поговорите</h3><p>Пишите как другу. Без формальностей. Ваш собеседник выслушает и поддержит.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAT -->
+<section class="chat-section" id="chat">
+  <div class="container">
+    <div class="sec-label reveal">Начните прямо сейчас</div>
+    <div class="chat-layout">
+      <div class="chat-meta reveal">
+        <h3>Выберите<br>своего<br><em>собеседника</em></h3>
+        <p>Иногда проще открыться котику, чем специалисту. Здесь нет правильного выбора — только ваш.</p>
+        <div class="chosen-pill" id="chosenPill" style="display:none;">
+          <div id="chosenAva"></div>
+          <div class="chosen-pill-info">
+            <h4 id="chosenName">—</h4>
+            <span id="chosenDesc">—</span>
+          </div>
+          <span style="margin-left:auto;font-size:11px;color:var(--sage-deep);display:flex;align-items:center;"><span class="pulse-dot"></span>онлайн</span>
+        </div>
+        <p style="font-size:13px;color:var(--ink-muted);line-height:1.7;">Все разговоры анонимны. Мы не храним и не передаём ваши данные.</p>
+      </div>
+
+      <div class="reveal">
+        <div class="chat-widget" id="chatWidget">
+
+          <!-- SCREEN 1: NAME -->
+          <div class="screen-name" id="scrName">
+            <div style="font-size:52px;margin-bottom:1rem;">👋</div>
+            <h3>Добро пожаловать</h3>
+            <p>Здесь всегда кто-то есть.<br>Как вас зовут?</p>
+            <div class="name-row">
+              <input type="text" id="nameInp" placeholder="Ваше имя..." maxlength="30" />
+              <button onclick="goToPick()">Далее →</button>
+            </div>
+            <p class="name-hint">Имя не сохраняется. Можно написать любое.</p>
+          </div>
+
+          <!-- SCREEN 2: PICK -->
+          <div class="screen-pick" id="scrPick">
+            <h3 id="pickTitle">Привет! Выберите собеседника</h3>
+            <p class="pick-sub">С кем вам сегодня комфортнее всего?</p>
+            <div class="chars-grid" id="charsGrid">
+              <!-- filled by JS -->
+            </div>
+            <button class="pick-btn" id="pickBtn" onclick="startChat()" disabled>Начать разговор</button>
+          </div>
+
+          <!-- SCREEN 3: CHAT -->
+          <div class="screen-chat" id="scrChat">
+            <div class="chat-hdr">
+              <div id="hdrAva"></div>
+              <div class="chat-hdr-info">
+                <h4 id="hdrName"></h4>
+                <div class="hdr-char" id="hdrChar"></div>
+                <div class="hdr-status"><span class="pulse-dot" style="width:6px;height:6px;"></span>онлайн — готов слушать</div>
+              </div>
+              <button class="hdr-back" onclick="goBack()">← сменить</button>
+            </div>
+            <div class="chat-msgs" id="chatMsgs">
+              <div class="typing-row" id="typRow" style="display:flex;">
+                <div class="msg-ava" id="typAva"></div>
+                <div class="typing-bubbl"><span></span><span></span><span></span></div>
+              </div>
+            </div>
+            <div class="chat-ftr">
+              <div class="chat-disc">Сервис не заменяет профессиональную психологическую помощь</div>
+              <div class="chat-inp-row">
+                <textarea id="msgInp" rows="1" placeholder="Напишите что-нибудь..." onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMsg()">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9h12M11 5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="f-logo">Тихая<span>&nbsp;гавань</span></span>
+  <p>Бесплатный сервис психологической поддержки. Мы не собираем и не храним личные данные. Все разговоры анонимны.</p>
+  <p>Если вам угрожает реальная опасность — обратитесь к специалисту или на горячую линию.</p>
+  <a class="hotline" href="tel:88002000122">📞 Телефон доверия: 8-800-2000-122 (бесплатно)</a>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-ov" id="modalOv" onclick="closeMod(event)">
+  <div class="modal-box">
+    <button class="modal-x" onclick="closeModDir()">✕</button>
+    <span class="modal-tag" id="modTag"></span>
+    <h2 id="modTitle"></h2>
+    <div class="modal-body" id="modBody"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════
+   SVG AVATARS
+════════════════════════════════════ */
+function svgCat(w){w=w||80;return`<svg width="${w}" height="${w}" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+<circle cx="40" cy="40" r="40" fill="#FFF3E8"/>
+<!-- body -->
+<ellipse cx="40" cy="62" rx="22" ry="14" fill="#F0A070"/>
+<!-- head -->
+<circle cx="40" cy="36" r="22" fill="#F0A070"/>
+<!-- ears -->
+<polygon points="18,18 12,4 26,14" fill="#F0A070"/>
+<polygon points="62,18 68,4 54,14" fill="#F0A070"/>
+<polygon points="20,17 15,7 26,15" fill="#F9C0B0"/>
+<polygon points="60,17 65,7 54,15" fill="#F9C0B0"/>
+<!-- face -->
+<ellipse cx="31" cy="34" rx="5" ry="6" fill="white"/>
+<ellipse cx="49" cy="34" rx="5" ry="6" fill="white"/>
+<ellipse cx="31" cy="35" rx="3" ry="4" fill="#4A7A8A"/>
+<ellipse cx="49" cy="35" rx="3" ry="4" fill="#4A7A8A"/>
+<circle cx="31" cy="35" r="1.8" fill="#1C1F2E"/>
+<circle cx="49" cy="35" r="1.8" fill="#1C1F2E"/>
+<circle cx="31.8" cy="33.5" r=".7" fill="white"/>
+<circle cx="49.8" cy="33.5" r=".7" fill="white"/>
+<!-- nose -->
+<ellipse cx="40" cy="41" rx="2.5" ry="1.5" fill="#E07070"/>
+<!-- mouth -->
+<path d="M37.5 43 Q40 46 42.5 43" stroke="#C05050" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+<!-- whiskers -->
+<line x1="16" y1="40" x2="34" y2="42" stroke="rgba(80,50,30,.3)" stroke-width="1"/>
+<line x1="16" y1="44" x2="34" y2="44" stroke="rgba(80,50,30,.3)" stroke-width="1"/>
+<line x1="46" y1="42" x2="64" y2="40" stroke="rgba(80,50,30,.3)" stroke-width="1"/>
+<line x1="46" y1="44" x2="64" y2="44" stroke="rgba(80,50,30,.3)" stroke-width="1"/>
+<!-- cheeks -->
+<circle cx="26" cy="43" r="5" fill="rgba(240,130,100,.2)"/>
+<circle cx="54" cy="43" r="5" fill="rgba(240,130,100,.2)"/>
+<!-- stripes -->
+<path d="M33 16 Q36 20 34 24" stroke="rgba(180,90,50,.3)" stroke-width="1.5" fill="none"/>
+<path d="M47 16 Q44 20 46 24" stroke="rgba(180,90,50,.3)" stroke-width="1.5" fill="none"/>
+</svg>`;}
+
+function svgDog(w){w=w||80;return`<svg width="${w}" height="${w}" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+<circle cx="40" cy="40" r="40" fill="#FFF8EE"/>
+<!-- body -->
+<ellipse cx="40" cy="63" rx="20" ry="13" fill="#D4956A"/>
+<!-- head -->
+<circle cx="40" cy="36" r="22" fill="#E8A87C"/>
+<!-- ears floppy -->
+<ellipse cx="18" cy="32" rx="9" ry="14" fill="#C47840" transform="rotate(-15 18 32)"/>
+<ellipse cx="62" cy="32" rx="9" ry="14" fill="#C47840" transform="rotate(15 62 32)"/>
+<ellipse cx="18" cy="33" rx="6" ry="10" fill="#D4885A" transform="rotate(-15 18 33)"/>
+<ellipse cx="62" cy="33" rx="6" ry="10" fill="#D4885A" transform="rotate(15 62 33)"/>
+<!-- snout -->
+<ellipse cx="40" cy="43" rx="11" ry="8" fill="#C47840"/>
+<!-- eyes -->
+<circle cx="31" cy="33" r="5" fill="white"/>
+<circle cx="49" cy="33" r="5" fill="white"/>
+<circle cx="31" cy="34" r="3" fill="#5C3A1E"/>
+<circle cx="49" cy="34" r="3" fill="#5C3A1E"/>
+<circle cx="31" cy="34" r="1.5" fill="#1C1F2E"/>
+<circle cx="49" cy="34" r="1.5" fill="#1C1F2E"/>
+<circle cx="31.8" cy="32.8" r=".6" fill="white"/>
+<circle cx="49.8" cy="32.8" r=".6" fill="white"/>
+<!-- eyebrows -->
+<path d="M27 28 Q31 26 35 28" stroke="#8B5E3C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<path d="M45 28 Q49 26 53 28" stroke="#8B5E3C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<!-- nose -->
+<ellipse cx="40" cy="41" rx="4" ry="3" fill="#2C1A0E"/>
+<!-- nostrils -->
+<circle cx="37.5" cy="41.5" r=".8" fill="#1C1F2E"/>
+<circle cx="42.5" cy="41.5" r=".8" fill="#1C1F2E"/>
+<!-- mouth -->
+<path d="M36 46 Q40 50 44 46" stroke="#8B5E3C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<!-- cheeks -->
+<circle cx="24" cy="44" r="5" fill="rgba(220,120,80,.2)"/>
+<circle cx="56" cy="44" r="5" fill="rgba(220,120,80,.2)"/>
+<!-- tongue -->
+<ellipse cx="40" cy="49" rx="4" ry="3" fill="#E07090"/>
+</svg>`;}
+
+function svgCapi(w){w=w||80;return`<svg width="${w}" height="${w}" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+<circle cx="40" cy="40" r="40" fill="#EEF5EE"/>
+<!-- body -->
+<ellipse cx="40" cy="64" rx="24" ry="13" fill="#8B7355"/>
+<!-- head big rounded square -->
+<rect x="14" y="18" width="52" height="38" rx="16" fill="#9B8060"/>
+<!-- snout area -->
+<rect x="20" y="32" width="40" height="22" rx="12" fill="#8B7050"/>
+<!-- eyes -->
+<circle cx="28" cy="28" r="5.5" fill="white"/>
+<circle cx="52" cy="28" r="5.5" fill="white"/>
+<circle cx="28" cy="29" r="3.5" fill="#3D2B1A"/>
+<circle cx="52" cy="29" r="3.5" fill="#3D2B1A"/>
+<circle cx="28" cy="29" r="1.8" fill="#1C1F2E"/>
+<circle cx="52" cy="29" r="1.8" fill="#1C1F2E"/>
+<circle cx="28.8" cy="27.8" r=".7" fill="white"/>
+<circle cx="52.8" cy="27.8" r=".7" fill="white"/>
+<!-- nostrils on top of snout -->
+<circle cx="35" cy="36" r="3" fill="#6B5040"/>
+<circle cx="45" cy="36" r="3" fill="#6B5040"/>
+<circle cx="35" cy="36" r="1.5" fill="#3D2B1A"/>
+<circle cx="45" cy="36" r="1.5" fill="#3D2B1A"/>
+<!-- mouth calm -->
+<path d="M32 46 Q40 50 48 46" stroke="#6B5040" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+<!-- ears small -->
+<circle cx="16" cy="22" r="7" fill="#9B8060"/>
+<circle cx="64" cy="22" r="7" fill="#9B8060"/>
+<circle cx="16" cy="22" r="4" fill="#8B7050"/>
+<circle cx="64" cy="22" r="4" fill="#8B7050"/>
+<!-- zen eyebrows slightly raised -->
+<path d="M23 22 Q28 20 33 22" stroke="#6B5040" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+<path d="M47 22 Q52 20 57 22" stroke="#6B5040" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+<!-- cheeks -->
+<circle cx="22" cy="44" r="6" fill="rgba(160,200,140,.25)"/>
+<circle cx="58" cy="44" r="6" fill="rgba(160,200,140,.25)"/>
+</svg>`;}
+
+function svgHuman(w){w=w||80;return`<svg width="${w}" height="${w}" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+<circle cx="40" cy="40" r="40" fill="#F0EAF8"/>
+<!-- body/shoulders -->
+<ellipse cx="40" cy="74" rx="26" ry="14" fill="#C9C4E8"/>
+<!-- neck -->
+<rect x="34" y="56" width="12" height="10" rx="4" fill="#F5C5A3"/>
+<!-- head -->
+<circle cx="40" cy="38" r="22" fill="#F5C5A3"/>
+<!-- hair -->
+<ellipse cx="40" cy="22" rx="22" ry="12" fill="#5C3D2E"/>
+<ellipse cx="18" cy="36" rx="5" ry="12" fill="#5C3D2E" transform="rotate(-8 18 36)"/>
+<ellipse cx="62" cy="36" rx="5" ry="12" fill="#5C3D2E" transform="rotate(8 62 36)"/>
+<!-- eyes -->
+<ellipse cx="31" cy="37" rx="5" ry="4" fill="white"/>
+<ellipse cx="49" cy="37" rx="5" ry="4" fill="white"/>
+<circle cx="31" cy="38" r="2.8" fill="#7B72B8"/>
+<circle cx="49" cy="38" r="2.8" fill="#7B72B8"/>
+<circle cx="31" cy="38" r="1.5" fill="#1C1F2E"/>
+<circle cx="49" cy="38" r="1.5" fill="#1C1F2E"/>
+<circle cx="31.7" cy="36.8" r=".6" fill="white"/>
+<circle cx="49.7" cy="36.8" r=".6" fill="white"/>
+<!-- eyebrows -->
+<path d="M25 31 Q31 29 37 31" stroke="#5C3D2E" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+<path d="M43 31 Q49 29 55 31" stroke="#5C3D2E" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+<!-- nose -->
+<path d="M40 41 Q37 46 38 48 Q40 49.5 42 48 Q43 46 40 41" fill="#EAB08A" stroke="rgba(0,0,0,.06)" stroke-width=".5"/>
+<!-- mouth smile -->
+<path d="M33 52 Q40 57 47 52" stroke="#C47A6A" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+<!-- cheeks -->
+<circle cx="24" cy="47" r="5" fill="rgba(220,140,120,.18)"/>
+<circle cx="56" cy="47" r="5" fill="rgba(220,140,120,.18)"/>
+</svg>`;}
+
+/* ════════════════════════════════════
+   CHARACTERS
+════════════════════════════════════ */
+const CHARS = [
+  {
+    id:'cat', name:'Мурка', label:'Кошка',
+    tagline:'Слушаю молча, сужу — никогда',
+    color:'#FFF3E8',
+    svgFn: svgCat,
+    system:`Ты — Мурка, мудрая домашняя кошка, которая умеет слушать людей и поддерживать их. Ты немногословна, говоришь коротко и точно. Иногда используешь лёгкую иронию с теплотой. Никогда не осуждаешь. Не даёшь длинных советов — ты просто рядом. Отвечай коротко — 2–3 предложения. Один вопрос за раз. Говори на языке пользователя.`
+  },
+  {
+    id:'dog', name:'Барбос', label:'Пёс',
+    tagline:'Всегда рядом, всегда рад тебе',
+    color:'#FFF8EE',
+    svgFn: svgDog,
+    system:`Ты — Барбос, добрейший пёс, который безгранично любит людей. Ты энергичен, тёплый, всегда готов поддержать. Говоришь с энтузиазмом, но без навязчивости. Ты веришь в человека и говоришь ему об этом. Отвечай коротко — 3 предложения. Один вопрос за раз. Говори на языке пользователя.`
+  },
+  {
+    id:'capi', name:'Капи', label:'Капибара',
+    tagline:'Спокойствие — это моё второе имя',
+    color:'#EEF5EE',
+    svgFn: svgCapi,
+    system:`Ты — Капи, невозмутимая и мудрая капибара. Ты олицетворяешь спокойствие и принятие. Говоришь медленно и обдуманно, никогда не торопишься. Умеешь найти простую мудрость в сложных вещах. Твой тон — тихий, тёплый, философский. Отвечай коротко — 2–3 предложения. Один вопрос за раз. Говори на языке пользователя.`
+  },
+  {
+    id:'human', name:'Алина', label:'Психолог',
+    tagline:'Профессионально и по-человечески',
+    color:'#F0EAF8',
+    svgFn: svgHuman,
+    system:`Ты — Алина, тёплый и внимательный психолог-консультант. Говоришь живо и по-человечески, без клише. Никогда не начинаешь ответ с "Конечно!" или "Безусловно!". Сначала слушаешь и понимаешь, потом осторожно предлагаешь. Задаёшь один вопрос за раз. Отвечай коротко — 3–4 предложения. Говори на языке пользователя.`
+  }
+];
+
+let userName = '';
+let chosen = null;
+let history = [];
+let busy = false;
+
+/* ── SCREEN FLOW ── */
+function goToPick(){
+  const v = document.getElementById('nameInp').value.trim();
+  userName = v || 'друг';
+  document.getElementById('pickTitle').textContent = `${userName}, выберите собеседника`;
+  buildCharCards();
+  document.getElementById('scrName').style.display='none';
+  document.getElementById('scrPick').style.display='flex';
+}
+
+function buildCharCards(){
+  const grid = document.getElementById('charsGrid');
+  grid.innerHTML='';
+  CHARS.forEach(c=>{
+    const card = document.createElement('div');
+    card.className='char-card';
+    card.dataset.id=c.id;
+    card.style.setProperty('--c-bg', c.color);
+    card.innerHTML=`
+      <div style="background:${c.color};border-radius:50%;padding:6px;">${c.svgFn(64)}</div>
+      <div class="char-tag">${c.label}</div>
+      <h4>${c.name}</h4>
+      <p>${c.tagline}</p>`;
+    card.onclick=()=>selectChar(c, card);
+    grid.appendChild(card);
+  });
+}
+
+function selectChar(c, card){
+  chosen=c;
+  document.querySelectorAll('.char-card').forEach(el=>el.classList.remove('selected'));
+  card.classList.add('selected');
+  document.getElementById('pickBtn').disabled=false;
+  // update side pill
+  document.getElementById('chosenPill').style.display='flex';
+  document.getElementById('chosenAva').innerHTML=`<div style="width:44px;height:44px;background:${c.color};border-radius:50%;display:flex;align-items:center;justify-content:center;">${c.svgFn(36)}</div>`;
+  document.getElementById('chosenName').textContent=c.name;
+  document.getElementById('chosenDesc').textContent=c.tagline;
+}
+
+function startChat(){
+  if(!chosen) return;
+  // setup header
+  document.getElementById('hdrAva').innerHTML=`<div style="width:44px;height:44px;background:${chosen.color};border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;">${chosen.svgFn(44)}</div>`;
+  document.getElementById('hdrName').textContent=chosen.name;
+  document.getElementById('hdrChar').textContent=chosen.label;
+  document.getElementById('typAva').innerHTML=`<div style="width:32px;height:32px;background:${chosen.color};border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;">${chosen.svgFn(32)}</div>`;
+  document.getElementById('scrPick').style.display='none';
+  document.getElementById('scrChat').style.display='flex';
+  history=[];
+  setTimeout(greet, 350);
+}
+
+function goBack(){
+  document.getElementById('scrChat').style.display='none';
+  document.getElementById('chatMsgs').innerHTML=`<div class="typing-row" id="typRow" style="display:flex;"><div class="msg-ava" id="typAva"></div><div class="typing-bubbl"><span></span><span></span><span></span></div></div>`;
+  chosen=null;
+  document.getElementById('pickBtn').disabled=true;
+  document.querySelectorAll('.char-card').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('scrPick').style.display='flex';
+}
+
+/* ── CHAT LOGIC ── */
+function greet(){
+  const greetings={
+    cat:`Мяу... Ты пришёл, и это хорошо. Что у тебя на душе, ${userName}?`,
+    dog:`О, ${userName}! Так рад тебя видеть! Хвост уже виляет. Расскажи мне всё — я слушаю!`,
+    capi:`...${userName}. Ты здесь. Хорошо. Что тебя привело сегодня?`,
+    human:`Привет, ${userName}. Рада, что ты зашёл. Как ты себя чувствуешь?`
+  };
+  const msg = greetings[chosen.id];
+  showTyp(false);
+  addBubble('ai', msg);
+  history.push({role:'assistant',content:msg});
+}
+
+function addBubble(role, text){
+  const msgs=document.getElementById('chatMsgs');
+  const typRow=document.getElementById('typRow');
+  const row=document.createElement('div');
+  row.className=`msg-row${role==='usr'?' usr':''}`;
+  if(role==='ai'){
+    row.innerHTML=`<div class="msg-ava"><div style="width:32px;height:32px;background:${chosen.color};border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;">${chosen.svgFn(32)}</div></div><div class="bubble ai">${text}</div>`;
+  } else {
+    const init=userName.slice(0,1).toUpperCase();
+    row.innerHTML=`<div class="bubble usr">${text}</div><div class="usr-ava">${init}</div>`;
+  }
+  msgs.insertBefore(row,typRow);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function showTyp(show){
+  const r=document.getElementById('typRow');
+  if(r){r.style.display=show?'flex':'none';}
+  if(show){const m=document.getElementById('chatMsgs');if(m)m.scrollTop=m.scrollHeight;}
+}
+
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
+
+async function sendMsg(){
+  if(busy)return;
+  const inp=document.getElementById('msgInp');
+  const text=inp.value.trim();
+  if(!text)return;
+  inp.value='';inp.style.height='auto';
+  addBubble('usr',text);
+  history.push({role:'user',content:text});
+  busy=true;
+  document.getElementById('sendBtn').disabled=true;
+  showTyp(true);
+
+  const sys=`${chosen.system}\nСейчас ты разговариваешь с человеком по имени ${userName}. Оставайся в своём персонаже всегда.`;
+
+  try{
+    const res=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-opus-4-6',max_tokens:1000,system:sys,messages:history})
+    });
+    const data=await res.json();
+    const reply=data.content?.map(b=>b.text||'').join('')||'Прости, что-то пошло не так. Попробуй ещё раз.';
+    showTyp(false);
+    addBubble('ai',reply);
+    history.push({role:'assistant',content:reply});
+  }catch(e){
+    showTyp(false);
+    addBubble('ai','Что-то пошло не так. Попробуй написать ещё раз.');
+  }
+  busy=false;
+  document.getElementById('sendBtn').disabled=false;
+  document.getElementById('msgInp').focus();
+}
+
+document.getElementById('nameInp').addEventListener('keydown',e=>{if(e.key==='Enter')goToPick();});
+
+/* ── ARTICLES ── */
+const arts={
+  anxiety:{tag:'Тревога',title:'Что делать, когда накрывает тревога прямо сейчас',body:`<p>Тревога — нормальная реакция нервной системы. Но когда она захлёстывает, трудно вспомнить, что с этим можно что-то сделать.</p><h4>1. Дыхание 4-7-8</h4><p>Вдохните через нос на 4 счёта, задержите на 7, выдохните через рот на 8. Повторите 3–4 раза. Это активирует парасимпатическую нервную систему.</p><h4>2. Техника 5-4-3-2-1</h4><p>Назовите: 5 вещей, которые видите; 4 — которые можно потрогать; 3 — которые слышите; 2 — по запаху; 1 — на вкус. Это возвращает в настоящий момент.</p><div class="hl">«Тревога живёт в будущем. Когда вы перемещаете внимание в "сейчас" — ей становится негде жить.»</div><h4>3. Холодная вода</h4><p>Умойтесь холодной водой или подержите запястья под холодной струёй 30 секунд.</p><h4>4. Напишите, что вас пугает</h4><p>Выгрузите тревогу на бумагу. Не оценивайте — просто пишите.</p><h4>5. Позвольте тревоге быть</h4><p>Скажите себе: «Я замечаю тревогу. Она неприятна, но не опасна. Она пройдёт.»</p>`},
+  feelings:{tag:'Эмоции',title:'Как говорить о своих чувствах, когда слов не хватает',body:`<p>Многие выросли в культуре, где говорить о чувствах было не принято. Эти установки мешают просить о помощи.</p><h4>Почему это важно</h4><p>Невыраженные эмоции не исчезают — они уходят внутрь и проявляются через тело или взрываются в неподходящий момент.</p><div class="hl">«Называть чувство — значит уже частично его переработать.»</div><h4>Начните с простого</h4><p>«Мне сегодня было тяжело» или «Я устал больше, чем обычно» — это уже честность.</p><h4>Используйте «я-высказывания»</h4><p>Вместо «ты меня игнорируешь» — «я чувствую себя одиноким, когда мы не разговариваем».</p><h4>Если слов нет совсем</h4><ul><li>Напишите в дневник</li><li>Нарисуйте, как вы себя чувствуете</li><li>Поговорите с кем-то, кому доверяете</li></ul>`},
+  burnout:{tag:'Выгорание',title:'Выгорание: как понять, что оно уже здесь, и что делать',body:`<p>Выгорание — не слабость и не лень. Это истощение нервной системы. ВОЗ официально признала его синдромом.</p><h4>Три признака</h4><ul><li><strong>Истощение:</strong> усталость не проходит после сна</li><li><strong>Цинизм:</strong> то, что нравилось, теперь безразлично</li><li><strong>Снижение эффективности:</strong> простые задачи требуют огромных усилий</li></ul><div class="hl">«Выгорание — это сигнал: я давал слишком долго и слишком много.»</div><h4>Что помогает</h4><ul><li>Найдите и устраните главный источник истощения</li><li>Верните хотя бы одно занятие, которое даёт энергию</li><li>Поговорите с кем-то — выгорание усиливается в изоляции</li></ul>`},
+  sleep:{tag:'Сон',title:'Почему тревожные мысли приходят ночью и как с ними быть',body:`<p>«Днём всё нормально, а ночью лежу и думаю о том, что сказал три года назад» — знакомо? Это не случайность.</p><h4>Почему ночью хуже</h4><p>Днём мозг занят и переключается между задачами. Ночью он переходит в режим «обработки незакрытых дел».</p><div class="hl">«Ночные мысли кажутся катастрофой, потому что рациональная часть мозга в это время работает хуже.»</div><h4>Что помогает</h4><p><strong>Список тревог перед сном.</strong> За 30–60 минут до сна запишите всё, что беспокоит.</p><p><strong>«Это ночная мысль».</strong> Скажите себе: «Утром она будет выглядеть иначе».</p><p><strong>Если не спите 20 минут</strong> — встаньте, займитесь чем-то спокойным, вернитесь когда захочется спать.</p>`}
+};
+function openArt(id){const a=arts[id];document.getElementById('modTag').textContent=a.tag;document.getElementById('modTitle').textContent=a.title;document.getElementById('modBody').innerHTML=a.body;document.getElementById('modalOv').classList.add('open');document.body.style.overflow='hidden';}
+function closeMod(e){if(e.target===document.getElementById('modalOv'))closeModDir();}
+function closeModDir(){document.getElementById('modalOv').classList.remove('open');document.body.style.overflow='';}
+
+/* REVEAL */
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');});},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
