@@ -43,7 +43,7 @@ const server = http.createServer((req, res) => {
       let payload;
       try { payload = JSON.parse(body); } catch(e) { res.writeHead(400); res.end('Bad JSON'); return; }
       const kieBody = JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         system: payload.system || '',
         messages: payload.messages || [],
