@@ -751,7 +751,7 @@ async function sendMsg(){
     const res=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:history})
+      body:JSON.stringify({system:sys,messages:history})
     });
     const data=await res.json();
     if(!res.ok){
@@ -763,7 +763,7 @@ async function sendMsg(){
       document.getElementById('sendBtn').disabled=false;
       return;
     }
-    const reply=data.content?.map(b=>b.text||'').join('')||'Прости, что-то пошло не так. Попробуй ещё раз.';
+    const reply=data.reply||'Прости, что-то пошло не так. Попробуй ещё раз.';
     showTyp(false);
     addBubble('ai',reply);
     history.push({role:'assistant',content:reply});
