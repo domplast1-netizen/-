@@ -754,13 +754,23 @@ async function sendMsg(){
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:history})
     });
     const data=await res.json();
+    if(!res.ok){
+      const errMsg = data.error?.message || data.error || JSON.stringify(data);
+      console.error('kie.ai error:', res.status, errMsg);
+      showTyp(false);
+      addBubble('ai', `Ошибка [${res.status}]: ${errMsg}`);
+      busy=false;
+      document.getElementById('sendBtn').disabled=false;
+      return;
+    }
     const reply=data.content?.map(b=>b.text||'').join('')||'Прости, что-то пошло не так. Попробуй ещё раз.';
     showTyp(false);
     addBubble('ai',reply);
     history.push({role:'assistant',content:reply});
   }catch(e){
     showTyp(false);
-    addBubble('ai','Что-то пошло не так. Попробуй написать ещё раз.');
+    addBubble('ai','Ошибка соединения: ' + e.message + '. Попробуй ещё раз.');
+    console.error('fetch error:', e);
   }
   busy=false;
   document.getElementById('sendBtn').disabled=false;
