@@ -40,7 +40,7 @@ const server = http.createServer((req, res) => {
       catch(e) { res.writeHead(400); res.end('Bad JSON'); return; }
 
       const kieBody = JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: payload.system || '',
         messages: payload.messages || [],
