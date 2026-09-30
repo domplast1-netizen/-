@@ -1,4 +1,5 @@
 'use strict';
+
 // Domplast Kaspi Railway: full, standalone server.js
 // Version: catalog-probe-2026-09-30-v3
 // Express + axios + https-proxy-agent (optional proxy)
@@ -12,7 +13,7 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
-const VERSION = 'catalog-probe-2026-09-30-v3';
+const VERSION = 'catalog-fullscan-2026-09-30-v4';
 const PORT = Number(process.env.PORT || 8080);
 const API_KEY = String(process.env.API_KEY || '').trim();
 const UPSTREAM_PROXY_URL = String(process.env.UPSTREAM_PROXY_URL || '').trim();
@@ -157,7 +158,7 @@ app.get('/health', (req, res) => {
     ok: true,
     service: 'domplast-kaspi-railway-test',
     version: VERSION,
-    routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe'],
+    routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe', '/catalog-scan-page', '/catalog-verify-own'],
     proxyConfigured: Boolean(UPSTREAM_PROXY_URL),
     railway: {
       environment: process.env.RAILWAY_ENVIRONMENT_NAME || null,
@@ -326,9 +327,96 @@ app.get('/catalog-page-probe', requireKey, async (req, res) => {
   }
 });
 
+
+// FULL-SCAN TEST: one storefront page per request; verifies ALL found cards against our
+// actual offer. Responses are observations, not a guarantee of complete seller inventory.
+function extractOwnOffer(offers, merchantId) {
+  const own = offers.find(o => String(o?.merchantId || '') === merchantId);
+  return own ? {
+    merchantFound: true,
+    merchantSku: own.merchantSku == null ? null : String(own.merchantSku),
+    ourPrice: Number.isFinite(Number(own.price)) ? Number(own.price) : null
+  } : { merchantFound: false, merchantSku: null, ourPrice: null };
+}
+async function verifyOurOffer(productId, merchantId, cityId) {
+  const result = await fetchOffers(productId, cityId, 100);
+  if (result.status !== 200 || !Array.isArray(result.data?.offers)) {
+    return { state: 'ERROR', error: 'offers_http_' + result.status };
+  }
+  const offers = result.data.offers;
+  const own = extractOwnOffer(offers, merchantId);
+  return { state: own.merchantFound ? 'CONFIRMED' : 'NOT_CONFIRMED',
+    ...own, offersCount: offers.length,
+    // Absence from a 100-item offer window is NOT proof of delisting.
+    possiblyTruncated: offers.length >= 100 };
+}
+function safeProduct(p) {
+  return { productId: p.productId, name: p.name, shopLink: p.shopLink,
+    listingPrice: p.listingPrice, bestMerchant: p.bestMerchant };
+}
+app.get('/catalog-scan-page', requireKey, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const ids = checkMerchantCity(req, res);
+  if (!ids) return;
+  const page = boundedInt(req.query.page, 0, 0, 2000);
+  try {
+    const upstream = await fetchCatalogPage(ids.merchantId, ids.cityId, page);
+    if (upstream.status !== 200 || !Array.isArray(upstream.data?.data)) {
+      return res.status(statusForUpstream(upstream.status)).json({ok:false,
+        error:'catalog_response_unavailable',upstreamStatus:upstream.status});
+    }
+    const products = upstream.data.data.map(simplifyProduct);
+    // Offer checks run with bounded concurrency and budget; individual errors
+    // remain visible to the Apps Script retry phase.
+    const checked = new Array(products.length);
+    let cursor = 0;
+    const deadline = Date.now() + 70000;
+    async function worker() {
+      while (cursor < products.length) {
+        const n = cursor++;
+        const product = products[n];
+        if (!validId(product.productId, 6, 15)) {
+          checked[n] = {...safeProduct(product),state:'ERROR',error:'invalid_product_id'};
+          continue;
+        }
+        if (Date.now() > deadline) {
+          checked[n] = {...safeProduct(product),state:'ERROR',error:'request_time_budget'};
+          continue;
+        }
+        try {
+          const verified = await verifyOurOffer(product.productId, ids.merchantId, ids.cityId);
+          checked[n] = {...safeProduct(product), ...verified};
+        } catch (error) {
+          checked[n] = {...safeProduct(product),state:'ERROR',error:String(error.code || error.message || error).slice(0,120)};
+        }
+      }
+    }
+    await Promise.all([worker(),worker(),worker()]);
+    return res.json({ok:true,version:VERSION,...ids,page,count:products.length,
+      elapsedMs:upstream.elapsedMs,checked,
+      note:'Search results may change across pages. NOT_CONFIRMED is not DELISTED. Never purge missing items.'});
+  } catch (error) {
+    return res.status(502).json({ok:false,error:'catalog_scan_failed',...publicError(error)});
+  }
+});
+
+// Retry individual ERROR/NOT_CONFIRMED cards without refreshing the search page.
+app.get('/catalog-verify-own', requireKey, async (req,res) => {
+  res.set('Cache-Control','no-store');
+  const ids = checkMerchantCity(req,res);
+  if (!ids) return;
+  const productId = String(req.query.productId || '').trim();
+  if (!validId(productId,6,15)) return res.status(400).json({ok:false,error:'invalid_product_id'});
+  try {
+    const v = await verifyOurOffer(productId,ids.merchantId,ids.cityId);
+    return res.json({ok:true,productId,...ids,...v});
+  } catch (error) {
+    return res.status(502).json({ok:false,error:'catalog_verify_failed',...publicError(error)});
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`DOMPLAST SERVER VERSION: ${VERSION}`);
   console.log(`Listening on port ${PORT}`);
   console.log(`Proxy configured: ${Boolean(UPSTREAM_PROXY_URL)}`);
 });
-// FORCE DEPLOY V4
