@@ -1,4 +1,4 @@
-'use strict';
+use strict';
 
 const express = require('express');
 const axios = require('axios');
@@ -35,7 +35,7 @@ function proxyAgent() {
 }
 
 async function fetchKaspiOffers(productId, cityId, limit) {
-  const url = https://kaspi.kz/yml/offer-view/offers/${encodeURIComponent(productId)};
+  const url = `https://kaspi.kz/yml/offer-view/offers/${encodeURIComponent(productId)}`;
   const payload = {
     cityId: String(cityId),
     id: String(productId),
@@ -62,7 +62,7 @@ async function fetchKaspiOffers(productId, cityId, limit) {
       'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
       'Content-Type': 'application/json;charset=UTF-8',
       'Origin': 'https://kaspi.kz',
-      'Referer': https://kaspi.kz/shop/p/-${encodeURIComponent(productId)}/?c=${encodeURIComponent(cityId)},
+      'Referer': `https://kaspi.kz/shop/p/-${encodeURIComponent(productId)}/?c=${encodeURIComponent(cityId)}`,
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
     }
   };
@@ -301,6 +301,6 @@ app.get('/catalog-page-probe', auth, async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(Domplast Kaspi Railway test listening on :${PORT});
-  console.log(Proxy configured: ${Boolean(UPSTREAM_PROXY_URL)});
+  console.log(`Domplast Kaspi Railway test listening on :${PORT}`);
+  console.log(`Proxy configured: ${Boolean(UPSTREAM_PROXY_URL)}`);
 });
