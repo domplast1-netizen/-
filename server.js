@@ -1,4 +1,9 @@
-use strict';
+'use strict';
+
+// Domplast Kaspi Railway: full, standalone server.js
+// Version: catalog-probe-2026-09-30-v3
+// Express + axios + https-proxy-agent (optional proxy)
+// Read-only diagnostic endpoints; does not alter Kaspi or Google Sheets.
 
 const express = require('express');
 const axios = require('axios');
@@ -8,299 +13,322 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
+const VERSION = 'catalog-probe-2026-09-30-v3';
 const PORT = Number(process.env.PORT || 8080);
 const API_KEY = String(process.env.API_KEY || '').trim();
-const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 25000);
 const UPSTREAM_PROXY_URL = String(process.env.UPSTREAM_PROXY_URL || '').trim();
+const REQUEST_TIMEOUT_MS = Math.max(3000, Math.min(60000, Number(process.env.REQUEST_TIMEOUT_MS) || 25000));
+const DEFAULT_CITY = '351010000';
+const DEFAULT_MERCHANT = '30427112';
 
 if (!API_KEY) {
-  console.error('FATAL: API_KEY environment variable is required');
+  console.error('FATAL: configure Railway variable API_KEY before starting');
   process.exit(1);
 }
 
-function auth(req, res, next) {
-  const key = String(req.get('X-API-Key') || '').trim();
-  if (!key || key !== API_KEY) return res.status(401).json({ ok: false, error: 'unauthorized' });
+function requireKey(req, res, next) {
+  const supplied = req.get('X-API-Key') || '';
+  if (!supplied || supplied !== API_KEY) {
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
   next();
 }
 
-function positiveInt(value, fallback, min, max) {
+function boundedInt(value, fallback, low, high) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (!/^\d+$/.test(String(value))) return fallback;
   const n = Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(min, Math.min(max, Math.trunc(n)));
+  return Number.isSafeInteger(n) ? Math.max(low, Math.min(high, n)) : fallback;
 }
 
-function proxyAgent() {
-  return UPSTREAM_PROXY_URL ? new HttpsProxyAgent(UPSTREAM_PROXY_URL) : undefined;
+function validId(value, min = 1, max = 20) {
+  return new RegExp('^\\d{' + min + ',' + max + '}$').test(String(value));
 }
 
-async function fetchKaspiOffers(productId, cityId, limit) {
-  const url = `https://kaspi.kz/yml/offer-view/offers/${encodeURIComponent(productId)}`;
-  const payload = {
-    cityId: String(cityId),
-    id: String(productId),
-    merchantUID: '',
-    limit,
-    page: 0,
-    sortOption: null,
-    highRating: null,
-    searchText: null,
-    isExcellentMerchant: false,
-    installationId: '-1'
-  };
-
-  const agent = proxyAgent();
+function kaspiClientConfig(headers, extra = {}) {
   const config = {
-    method: 'post',
-    url,
-    data: payload,
     timeout: REQUEST_TIMEOUT_MS,
+    maxRedirects: 0,
     validateStatus: () => true,
-    maxRedirects: 5,
-    headers: {
-      'Accept': 'application/json, text/plain, */*',
-      'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
-      'Content-Type': 'application/json;charset=UTF-8',
-      'Origin': 'https://kaspi.kz',
-      'Referer': `https://kaspi.kz/shop/p/-${encodeURIComponent(productId)}/?c=${encodeURIComponent(cityId)}`,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-    }
+    headers,
+    ...extra
   };
-
-  if (agent) {
+  if (UPSTREAM_PROXY_URL) {
+    const agent = new HttpsProxyAgent(UPSTREAM_PROXY_URL);
     config.httpAgent = agent;
     config.httpsAgent = agent;
     config.proxy = false;
   }
+  return config;
+}
 
-  const started = Date.now();
-  const response = await axios(config);
-  const elapsedMs = Date.now() - started;
+function statusForUpstream(status) {
+  return status === 429 ? 429 : 502;
+}
 
+function publicError(error) {
   return {
-    status: response.status,
-    elapsedMs,
-    data: response.data,
-    responseHeaders: {
-      server: response.headers?.server || null,
-      'content-type': response.headers?.['content-type'] || null
-    }
+    code: error.code || null,
+    message: String(error.message || error).slice(0, 240)
   };
 }
 
+async function fetchOffers(productId, cityId, limit = 50) {
+  const url = `https://kaspi.kz/yml/offer-view/offers/${encodeURIComponent(productId)}`;
+  const payload = {
+    cityId: String(cityId), id: String(productId), merchantUID: '',
+    limit, page: 0, sortOption: null, highRating: null,
+    searchText: null, isExcellentMerchant: false, installationId: '-1'
+  };
+  const headers = {
+    Accept: 'application/json, text/plain, */*',
+    'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+    'Content-Type': 'application/json;charset=UTF-8',
+    Origin: 'https://kaspi.kz',
+    Referer: `https://kaspi.kz/shop/p/-${encodeURIComponent(productId)}/?c=${encodeURIComponent(cityId)}`,
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'
+  };
+  const started = Date.now();
+  const response = await axios.post(url, payload, kaspiClientConfig(headers, { maxRedirects: 5 }));
+  return { status: response.status, data: response.data, elapsedMs: Date.now() - started };
+}
+
+async function fetchCatalogPage(merchantId, cityId, page) {
+  const params = {
+    q: `:availableInZones:${cityId}:allMerchants:${merchantId}`,
+    page, sort: 'relevance', ui: 'd', i: -1, c: cityId
+  };
+  const headers = {
+    Accept: 'application/json',
+    Referer: 'https://kaspi.kz/shop/search/',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'
+  };
+  const started = Date.now();
+  const response = await axios.get(
+    'https://kaspi.kz/yml/product-view/pl/results',
+    kaspiClientConfig(headers, { params, maxContentLength: 2 * 1024 * 1024 })
+  );
+  return { status: response.status, data: response.data, elapsedMs: Date.now() - started };
+}
+
+function simplifyProduct(item) {
+  return {
+    productId: item?.id == null ? null : String(item.id),
+    name: item?.title || null,
+    shopLink: item?.shopLink || null,
+    listingPrice: item?.unitSalePrice ?? item?.unitPrice ?? null,
+    bestMerchant: item?.bestMerchant == null ? null : String(item.bestMerchant),
+    // SKU is not supplied by storefront listing. Confirm through /offers.
+    merchantSku: null
+  };
+}
+
+function paginationHints(body) {
+  const hints = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (key === 'data') continue;
+    if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) {
+      hints[key] = value;
+    } else if (Array.isArray(value)) {
+      hints[key] = { arrayLength: value.length };
+    } else if (value && typeof value === 'object') {
+      const shallow = {};
+      for (const [k, v] of Object.entries(value)) {
+        if (v === null || ['string', 'number', 'boolean'].includes(typeof v)) shallow[k] = v;
+      }
+      hints[key] = shallow;
+    }
+  }
+  return hints;
+}
+
+function checkMerchantCity(req, res) {
+  const merchantId = String(req.query.merchantId || DEFAULT_MERCHANT).trim();
+  const cityId = String(req.query.cityId || DEFAULT_CITY).trim();
+  if (!validId(merchantId) || !validId(cityId, 6, 15)) {
+    res.status(400).json({ ok: false, error: 'invalid_merchant_or_city' });
+    return null;
+  }
+  return { merchantId, cityId };
+}
+
+// Unauthenticated version marker: helps distinguish stale deployments from a missing route.
 app.get('/health', (req, res) => {
-  res.status(200).json({
+  res.set('Cache-Control', 'no-store').json({
     ok: true,
     service: 'domplast-kaspi-railway-test',
+    version: VERSION,
+    routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe'],
     proxyConfigured: Boolean(UPSTREAM_PROXY_URL),
     railway: {
       environment: process.env.RAILWAY_ENVIRONMENT_NAME || null,
-      region: process.env.RAILWAY_REPLICA_REGION || null
+      region: process.env.RAILWAY_REPLICA_REGION || null,
+      commit: process.env.RAILWAY_GIT_COMMIT_SHA || null
     },
     time: new Date().toISOString()
   });
 });
 
+// Simple manual test screen, with key sent only in X-API-Key header.
 app.get('/', (req, res) => {
-  res.type('html').send(`<!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kaspi Railway Test</title>
-<style>body{font-family:Arial,sans-serif;max-width:760px;margin:40px auto;padding:0 16px}input,button{font-size:16px;padding:10px;margin:5px 0;width:100%;box-sizing:border-box}button{cursor:pointer}pre{white-space:pre-wrap;background:#f4f4f4;padding:12px;border-radius:8px;overflow:auto}.ok{color:#087a27}.bad{color:#b00020}</style></head>
-<body><h2>Domplast — тест Railway → Kaspi</h2>
-<p>Введите Product ID и API_KEY из переменных Railway. Ключ отправляется в заголовке X-API-Key и не попадает в URL.</p>
-<label>Product ID</label><input id="pid" placeholder="137135273" inputmode="numeric">
-<label>API_KEY</label><input id="key" type="password" placeholder="ваш секретный API_KEY">
-<button id="go">Проверить Kaspi</button>
-<div id="status"></div><pre id="out"></pre>
-<script>
-const q=s=>document.querySelector(s);
-q('#go').onclick=async()=>{const pid=q('#pid').value.trim(), key=q('#key').value.trim(); q('#status').textContent='Запрос...'; q('#out').textContent=''; try{const r=await fetch('/offers?productId='+encodeURIComponent(pid),{headers:{'X-API-Key':key}}); const j=await r.json(); q('#status').className=r.ok?'ok':'bad'; q('#status').textContent='HTTP '+r.status+(j.upstreamStatus?' / Kaspi '+j.upstreamStatus:''); q('#out').textContent=JSON.stringify(j,null,2);}catch(e){q('#status').className='bad'; q('#status').textContent='Ошибка'; q('#out').textContent=String(e);}};
-</script></body></html>`);
+  res.type('html').send(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Domplast Railway</title>
+<style>body{max-width:780px;margin:32px auto;padding:0 16px;font:16px Arial}
+input,button{padding:9px;margin:5px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eee;padding:14px}
+</style></head><body><h2>Domplast Railway — ${VERSION}</h2>
+<p>Тестовые запросы доступны по /catalog-test. Статус — /health.</p>
+<label>Product ID: <input id="pid" value="150548473"></label><br>
+<label>Railway API_KEY: <input id="key" type="password" autocomplete="off"></label><br>
+<button id="go">Тест /offers</button><pre id="out"></pre>
+<script>document.getElementById('go').onclick=async()=>{
+const pid=document.getElementById('pid').value.trim();
+const key=document.getElementById('key').value.trim();
+const out=document.getElementById('out');out.textContent='Запрос...';
+try{const r=await fetch('/offers?productId='+encodeURIComponent(pid),{headers:{'X-API-Key':key}});
+out.textContent='HTTP '+r.status+'\\n'+JSON.stringify(await r.json(),null,2)}catch(e){out.textContent=String(e)}
+};</script></body></html>`);
 });
 
-app.get('/offers', auth, async (req, res) => {
+// Existing GAS monitor endpoint. Response shape intentionally retained.
+app.get('/offers', requireKey, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
   const productId = String(req.query.productId || '').trim();
-  const cityId = String(req.query.cityId || '351010000').trim();
-  const limit = positiveInt(req.query.limit, 50, 1, 100);
-
-  if (!/^\d{6,15}$/.test(productId)) {
-    return res.status(400).json({ ok: false, error: 'invalid_product_id' });
-  }
-  if (!/^\d{6,15}$/.test(cityId)) {
-    return res.status(400).json({ ok: false, error: 'invalid_city_id' });
-  }
-
+  const cityId = String(req.query.cityId || DEFAULT_CITY).trim();
+  const limit = boundedInt(req.query.limit, 50, 1, 100);
+  if (!validId(productId, 6, 15)) return res.status(400).json({ ok: false, error: 'invalid_product_id' });
+  if (!validId(cityId, 6, 15)) return res.status(400).json({ ok: false, error: 'invalid_city_id' });
   try {
-    const upstream = await fetchKaspiOffers(productId, cityId, limit);
-    const preview = typeof upstream.data === 'string'
-      ? upstream.data.slice(0, 1000)
-      : upstream.data;
-
-    if (upstream.status !== 200) {
-      return res.status(502).json({
+    const upstream = await fetchOffers(productId, cityId, limit);
+    if (upstream.status !== 200 || !upstream.data || typeof upstream.data !== 'object') {
+      return res.status(statusForUpstream(upstream.status)).json({
         ok: false,
         error: upstream.status === 403 ? 'kaspi_forbidden' : 'kaspi_http_error',
         upstreamStatus: upstream.status,
         elapsedMs: upstream.elapsedMs,
         proxyConfigured: Boolean(UPSTREAM_PROXY_URL),
-        body: preview
+        body: typeof upstream.data === 'string' ? upstream.data.slice(0, 500) : null
       });
     }
-
     return res.json({
-      ok: true,
-      upstreamStatus: upstream.status,
-      elapsedMs: upstream.elapsedMs,
-      proxyConfigured: Boolean(UPSTREAM_PROXY_URL),
-      productId,
-      cityId,
-      data: upstream.data
+      ok: true, upstreamStatus: 200, elapsedMs: upstream.elapsedMs,
+      proxyConfigured: Boolean(UPSTREAM_PROXY_URL), productId, cityId, data: upstream.data
     });
-  } catch (e) {
-    console.error(e);
-    const code = e.code || null;
-    const status = Number(e.response?.status || 0) || null;
+  } catch (error) {
+    console.error('/offers request:', error.code || error.message);
     return res.status(502).json({
-      ok: false,
-      error: 'kaspi_request_failed',
-      upstreamStatus: status,
-      code,
-      message: String(e.message || e).slice(0, 800)
+      ok: false, error: 'kaspi_request_failed',
+      upstreamStatus: Number(error.response?.status || 0) || null,
+      ...publicError(error)
     });
   }
 });
 
-// Read-only, single-page experiment. Never use listing price as our price.
-app.get('/catalog-test', (req, res) => {
-  res.type('html').send(`<!doctype html><meta charset="utf-8"><title>Каталог Domplast</title>
-<h2>Проверка одной страницы каталога</h2>
-<p>Тест ничего не меняет в Google Таблицах. Цена выдачи может принадлежать другому продавцу.</p>
-<label>Merchant ID <input id="merchant" value="30427112"></label><br>
-<label>Город <input id="city" value="351010000"></label><br>
-<label>API_KEY <input id="key" type="password" autocomplete="off"></label><br>
-<button id="go">Получить первую страницу</button><pre id="out"></pre>
-<script>
-document.getElementById('go').onclick=async function(){
- const el=id=>document.getElementById(id); this.disabled=true; el('out').textContent='Запрос…';
- try { const query=new URLSearchParams({merchantId:el('merchant').value.trim(),cityId:el('city').value.trim()});
- const r=await fetch('/catalog?'+query,{headers:{'X-API-Key':el('key').value.trim()}});
- el('out').textContent='HTTP '+r.status+'\\n'+JSON.stringify(await r.json(),null,2);
- } catch(e){el('out').textContent=String(e);} finally{this.disabled=false;}
-};</script>`);
+// Existing GAS first-page catalog endpoint. Does NOT prove full catalog coverage.
+app.get('/catalog', requireKey, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const ids = checkMerchantCity(req, res);
+  if (!ids) return;
+  try {
+    const upstream = await fetchCatalogPage(ids.merchantId, ids.cityId, 0);
+    if (upstream.status !== 200 || !Array.isArray(upstream.data?.data)) {
+      return res.status(statusForUpstream(upstream.status)).json({
+        ok: false, error: 'catalog_response_unavailable', upstreamStatus: upstream.status,
+        bodyPreview: typeof upstream.data === 'string' ? upstream.data.slice(0, 500) : null
+      });
+    }
+    const products = upstream.data.data.map(simplifyProduct);
+    return res.json({
+      ok: true, experimental: true, ...ids, page: 0,
+      elapsedMs: upstream.elapsedMs, count: products.length,
+      warning: 'Only page 0 of city storefront search. Completeness and SKU are NOT verified. listingPrice may be another merchant price.',
+      products, raw: upstream.data
+    });
+  } catch (error) {
+    console.error('/catalog request:', error.code || error.message);
+    return res.status(502).json({ ok: false, error: 'catalog_request_failed', ...publicError(error) });
+  }
 });
 
-app.get('/catalog', auth, async (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  const merchantId = String(req.query.merchantId || '').trim();
-  const cityId = String(req.query.cityId || '351010000').trim();
-  if (!/^\d{1,20}$/.test(merchantId) || !/^\d{6,15}$/.test(cityId)) {
-    return res.status(400).json({ok:false,error:'invalid_merchant_or_city'});
-  }
-  const params = {q:':availableInZones:'+cityId+':allMerchants:'+merchantId,
-    page:0,sort:'relevance',ui:'d',i:-1,c:cityId};
-  const agent = proxyAgent();
-  const config = {params,timeout:REQUEST_TIMEOUT_MS,validateStatus:()=>true,
-    maxRedirects:0,maxContentLength:2*1024*1024,
-    headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',
-      Referer:'https://kaspi.kz/shop/search/'}};
-  if(agent){config.httpAgent=agent;config.httpsAgent=agent;config.proxy=false;}
-  try {
-    const started=Date.now();
-    const upstream=await axios.get('https://kaspi.kz/yml/product-view/pl/results',config);
-    const body=upstream.data;
-    if(upstream.status!==200 || !body || !Array.isArray(body.data)) {
-      return res.status(upstream.status===429?429:502).json({ok:false,
-        error:'catalog_response_unavailable',upstreamStatus:upstream.status,
-        bodyPreview:typeof body==='string'?body.slice(0,500):body});
-    }
-    const products=body.data.map(p=>({productId:p.id==null?null:String(p.id),
-      name:p.title||null,shopLink:p.shopLink||null,
-      listingPrice:p.unitSalePrice??p.unitPrice??null,
-      bestMerchant:p.bestMerchant==null?null:String(p.bestMerchant),
-      merchantSku:null}));
-    return res.json({ok:true,experimental:true,merchantId,cityId,page:0,
-      elapsedMs:Date.now()-started,count:products.length,
-      warning:'Одна страница городской витрины. Полнота каталога не проверена. Артикул продавца не установлен. listingPrice не подтверждена как наша цена.',
-      products,raw:body});
-  } catch(e) {
-    return res.status(502).json({ok:false,error:'catalog_request_failed',code:e.code||null});
-  }
+app.get('/catalog-test', (req, res) => {
+  res.type('html').send(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<title>Domplast — каталог</title><style>body{font:16px Arial;max-width:780px;margin:32px auto}
+input,button{padding:9px;margin:5px}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body>
+<h2>Тест страниц каталога</h2><p>Диагностика только читает данные. Не меняет прайс.</p>
+<label>Merchant ID <input id="merchant" value="30427112"></label><br>
+<label>City ID <input id="city" value="351010000"></label><br>
+<label>Страница <input id="page" type="number" min="0" max="20" value="0"></label><br>
+<label>Проверить /offers у первых N <input id="verify" type="number" min="0" max="5" value="3"></label><br>
+<label>API_KEY <input id="key" type="password" autocomplete="off"></label><br>
+<button id="go">Запросить страницу</button><pre id="out"></pre>
+<script>document.getElementById('go').onclick=async function(){
+const el=id=>document.getElementById(id);const out=el('out');this.disabled=true;out.textContent='Запрос...';
+try{const q=new URLSearchParams({merchantId:el('merchant').value.trim(),cityId:el('city').value.trim(),
+page:el('page').value.trim(),verify:el('verify').value.trim()});
+const r=await fetch('/catalog-page-probe?'+q,{headers:{'X-API-Key':el('key').value.trim()}});
+out.textContent='HTTP '+r.status+'\\n'+JSON.stringify(await r.json(),null,2)
+}catch(e){out.textContent=String(e)}finally{this.disabled=false}
+};</script></body></html>`);
 });
-// TEST ONLY. Add this route BEFORE app.listen(...) in your existing server.js.
-// Does not change /catalog, /offers, or the Google Sheet.
-app.get('/catalog-page-probe', auth, async (req, res) => {
+
+// Three-page diagnostic client is already written in Apps Script; keep shape stable.
+app.get('/catalog-page-probe', requireKey, async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  const merchantId = String(req.query.merchantId || '30427112').trim();
-  const cityId = String(req.query.cityId || '351010000').trim();
-  const page = positiveInt(req.query.page, 0, 0, 20);
-  const verify = positiveInt(req.query.verify, 3, 0, 5);
-  if (!/^\d{1,20}$/.test(merchantId) || !/^\d{6,15}$/.test(cityId)) {
-    return res.status(400).json({ok:false,error:'invalid_merchant_or_city'});
-  }
-  const agent = proxyAgent();
-  const params = {q: ':availableInZones:' + cityId + ':allMerchants:' + merchantId,
-    page, sort:'relevance', ui:'d', i:-1, c:cityId};
-  const config = {params,timeout:REQUEST_TIMEOUT_MS,validateStatus:()=>true,
-    maxRedirects:0,maxContentLength:2*1024*1024,
-    headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',
-      Referer:'https://kaspi.kz/shop/search/'}};
-  if (agent) { config.httpAgent=agent; config.httpsAgent=agent; config.proxy=false; }
+  const ids = checkMerchantCity(req, res);
+  if (!ids) return;
+  const page = boundedInt(req.query.page, 0, 0, 20);
+  const verify = boundedInt(req.query.verify, 3, 0, 5);
   try {
-    const started=Date.now();
-    const upstream=await axios.get('https://kaspi.kz/yml/product-view/pl/results', config);
-    const body=upstream.data;
-    if(upstream.status!==200 || !body || !Array.isArray(body.data)) {
-      return res.status(upstream.status===429?429:502).json({ok:false,
-        error:'catalog_response_unavailable',upstreamStatus:upstream.status,
-        bodyPreview:typeof body==='string'?body.slice(0,300):null});
+    const upstream = await fetchCatalogPage(ids.merchantId, ids.cityId, page);
+    if (upstream.status !== 200 || !Array.isArray(upstream.data?.data)) {
+      return res.status(statusForUpstream(upstream.status)).json({
+        ok: false, error: 'catalog_response_unavailable', upstreamStatus: upstream.status,
+        bodyPreview: typeof upstream.data === 'string' ? upstream.data.slice(0, 300) : null
+      });
     }
-    // We intentionally do NOT treat bestMerchant as proof that the merchant owns a card.
-    const products=body.data.map(p=>({productId:p.id==null?null:String(p.id),
-      name:p.title||null, listingPrice:p.unitSalePrice??p.unitPrice??null,
-      bestMerchant:p.bestMerchant==null?null:String(p.bestMerchant)}));
-    // Surface pagination hints without returning huge raw data or leaking keys.
-    const pagination={};
-    for (const [key,value] of Object.entries(body)) {
-      if(key==='data') continue;
-      if(['string','number','boolean'].includes(typeof value) || value===null)
-        pagination[key]=value;
-      else if (Array.isArray(value)) pagination[key]={arrayLength:value.length};
-      else if(value && typeof value==='object') {
-        const shallow={};
-        for (const [k,v] of Object.entries(value)) {
-          if(['string','number','boolean'].includes(typeof v) || v===null) shallow[k]=v;
-        }
-        pagination[key]=shallow;
-      }
-    }
-    const verified=[];
-    for(const product of products.slice(0,verify)) {
-      if(!/^\d{6,15}$/.test(product.productId||'')) continue;
+    const products = upstream.data.data.map(simplifyProduct);
+    const verified = [];
+    for (const product of products.slice(0, verify)) {
+      if (!validId(product.productId, 6, 15)) continue;
       try {
-        const of=await fetchKaspiOffers(product.productId,cityId,50);
-        const offers=of.data && Array.isArray(of.data.offers) ? of.data.offers : [];
-        const own=offers.filter(o=>String(o.merchantId||'')===merchantId);
-        verified.push({productId:product.productId,offersHttp:of.status,
-          offersCount:offers.length,merchantFound:own.length>0,
-          // Merchant SKU and our price come from the VERIFIED merchant's offer only.
-          ourMerchantSku:own[0]?.merchantSku==null?null:String(own[0].merchantSku),
-          ourPrice:typeof own[0]?.price==='number'?own[0].price:null,
-          firstOfferMerchant:offers[0]?.merchantId==null?null:String(offers[0].merchantId)});
-      } catch(e) {
-        verified.push({productId:product.productId,error:String(e.code||e.message||e).slice(0,150)});
+        const of = await fetchOffers(product.productId, ids.cityId, 50);
+        if (of.status !== 200 || !Array.isArray(of.data?.offers)) {
+          verified.push({
+            productId: product.productId, offersHttp: of.status,
+            offersCount: null, merchantFound: null,
+            ourMerchantSku: null, ourPrice: null,
+            error: 'Offers unavailable or unexpected body'
+          });
+          continue;
+        }
+        const offers = of.data.offers;
+        const own = offers.filter(o => String(o.merchantId || '') === ids.merchantId);
+        verified.push({
+          productId: product.productId,
+          offersHttp: of.status, offersCount: offers.length,
+          merchantFound: own.length > 0,
+          ourMerchantSku: own[0]?.merchantSku == null ? null : String(own[0].merchantSku),
+          ourPrice: typeof own[0]?.price === 'number' ? own[0].price : null,
+          firstOfferMerchant: offers[0]?.merchantId == null ? null : String(offers[0].merchantId)
+        });
+      } catch (error) {
+        verified.push({ productId: product.productId, error: String(error.code || error.message || error).slice(0, 150) });
       }
     }
-    return res.json({ok:true,experimental:true,merchantId,cityId,page,
-      elapsedMs:Date.now()-started,count:products.length,pagination,
-      products,verified,
-      warning:'This is an experimental storefront search, NOT a complete merchant catalog. Do not delete unlisted SKUs or use listingPrice as our price.'});
-  } catch(e) {
-    return res.status(502).json({ok:false,error:'catalog_probe_failed',code:e.code||null,
-      message:String(e.message||e).slice(0,200)});
+    return res.json({
+      ok: true, experimental: true, ...ids, page,
+      elapsedMs: upstream.elapsedMs, count: products.length,
+      pagination: paginationHints(upstream.data),
+      products, verified,
+      warning: 'Experimental storefront search, NOT a verified complete merchant catalog. Do not mark missing SKUs delisted. listingPrice is NOT our confirmed price.'
+    });
+  } catch (error) {
+    console.error('/catalog-page-probe request:', error.code || error.message);
+    return res.status(502).json({ ok: false, error: 'catalog_probe_failed', ...publicError(error) });
   }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Domplast Kaspi Railway test listening on :${PORT}`);
+  console.log(`DOMPLAST SERVER VERSION: ${VERSION}`);
+  console.log(`Listening on port ${PORT}`);
   console.log(`Proxy configured: ${Boolean(UPSTREAM_PROXY_URL)}`);
 });
