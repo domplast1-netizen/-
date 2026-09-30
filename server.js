@@ -13,7 +13,7 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
-const VERSION = 'catalog-fullscan-2026-09-30-v4';
+const VERSION = 'catalog-separated-2026-09-30-v5';
 const PORT = Number(process.env.PORT || 8080);
 const API_KEY = String(process.env.API_KEY || '').trim();
 const UPSTREAM_PROXY_URL = String(process.env.UPSTREAM_PROXY_URL || '').trim();
@@ -158,7 +158,7 @@ app.get('/health', (req, res) => {
     ok: true,
     service: 'domplast-kaspi-railway-test',
     version: VERSION,
-    routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe', '/catalog-scan-page', '/catalog-verify-own'],
+    routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe', '/catalog-scan-page', '/catalog-verify-own', '/catalog-list-page'],
     proxyConfigured: Boolean(UPSTREAM_PROXY_URL),
     railway: {
       environment: process.env.RAILWAY_ENVIRONMENT_NAME || null,
@@ -341,7 +341,9 @@ function extractOwnOffer(offers, merchantId) {
 async function verifyOurOffer(productId, merchantId, cityId) {
   const result = await fetchOffers(productId, cityId, 100);
   if (result.status !== 200 || !Array.isArray(result.data?.offers)) {
-    return { state: 'ERROR', error: 'offers_http_' + result.status };
+    return { state: 'ERROR', error: 'offers_http_' + result.status, upstreamStatus: result.status,
+      bodyPreview: typeof result.data === 'string' ? result.data.slice(0, 320) :
+        (result.data && typeof result.data === 'object' ? JSON.stringify(result.data).slice(0, 320) : null) };
   }
   const offers = result.data.offers;
   const own = extractOwnOffer(offers, merchantId);
@@ -412,6 +414,31 @@ app.get('/catalog-verify-own', requireKey, async (req,res) => {
     return res.json({ok:true,productId,...ids,...v});
   } catch (error) {
     return res.status(502).json({ok:false,error:'catalog_verify_failed',...publicError(error)});
+  }
+});
+
+// NEW V5: listing-only page. Makes ZERO /offers requests.
+// Public merchant-filtered search is experimental and does not prove complete inventory.
+app.get('/catalog-list-page', requireKey, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const ids = checkMerchantCity(req, res);
+  if (!ids) return;
+  const page = boundedInt(req.query.page, 0, 0, 2000);
+  try {
+    const upstream = await fetchCatalogPage(ids.merchantId, ids.cityId, page);
+    if (upstream.status !== 200 || !Array.isArray(upstream.data?.data)) {
+      return res.status(statusForUpstream(upstream.status)).json({
+        ok: false, error: 'catalog_list_unavailable', upstreamStatus: upstream.status,
+        bodyPreview: typeof upstream.data === 'string' ? upstream.data.slice(0, 220) : null
+      });
+    }
+    const products = upstream.data.data.map(simplifyProduct);
+    return res.json({ ok: true, version: VERSION, ...ids, page,
+      count: products.length, elapsedMs: upstream.elapsedMs,
+      products, pagination: paginationHints(upstream.data),
+      warning: 'Experimental city search. Missing items are NOT proof of delisting; listingPrice is NOT our price.' });
+  } catch (error) {
+    return res.status(502).json({ok: false, error: 'catalog_list_failed', ...publicError(error)});
   }
 });
 
