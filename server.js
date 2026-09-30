@@ -1,5 +1,5 @@
 'use strict';
-
+console.log('DOMPLAST NEW SERVER V3');
 // Domplast Kaspi Railway: full, standalone server.js
 // Version: catalog-probe-2026-09-30-v3
 // Express + axios + https-proxy-agent (optional proxy)
