@@ -170,6 +170,63 @@ app.get('/offers', auth, async (req, res) => {
   }
 });
 
+// Read-only, single-page experiment. Never use listing price as our price.
+app.get('/catalog-test', (req, res) => {
+  res.type('html').send(`<!doctype html><meta charset="utf-8"><title>Каталог Domplast</title>
+<h2>Проверка одной страницы каталога</h2>
+<p>Тест ничего не меняет в Google Таблицах. Цена выдачи может принадлежать другому продавцу.</p>
+<label>Merchant ID <input id="merchant" value="30427112"></label><br>
+<label>Город <input id="city" value="351010000"></label><br>
+<label>API_KEY <input id="key" type="password" autocomplete="off"></label><br>
+<button id="go">Получить первую страницу</button><pre id="out"></pre>
+<script>
+document.getElementById('go').onclick=async function(){
+ const el=id=>document.getElementById(id); this.disabled=true; el('out').textContent='Запрос…';
+ try { const query=new URLSearchParams({merchantId:el('merchant').value.trim(),cityId:el('city').value.trim()});
+ const r=await fetch('/catalog?'+query,{headers:{'X-API-Key':el('key').value.trim()}});
+ el('out').textContent='HTTP '+r.status+'\\n'+JSON.stringify(await r.json(),null,2);
+ } catch(e){el('out').textContent=String(e);} finally{this.disabled=false;}
+};</script>`);
+});
+
+app.get('/catalog', auth, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const merchantId = String(req.query.merchantId || '').trim();
+  const cityId = String(req.query.cityId || '351010000').trim();
+  if (!/^\d{1,20}$/.test(merchantId) || !/^\d{6,15}$/.test(cityId)) {
+    return res.status(400).json({ok:false,error:'invalid_merchant_or_city'});
+  }
+  const params = {q:':availableInZones:'+cityId+':allMerchants:'+merchantId,
+    page:0,sort:'relevance',ui:'d',i:-1,c:cityId};
+  const agent = proxyAgent();
+  const config = {params,timeout:REQUEST_TIMEOUT_MS,validateStatus:()=>true,
+    maxRedirects:0,maxContentLength:2*1024*1024,
+    headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',
+      Referer:'https://kaspi.kz/shop/search/'}};
+  if(agent){config.httpAgent=agent;config.httpsAgent=agent;config.proxy=false;}
+  try {
+    const started=Date.now();
+    const upstream=await axios.get('https://kaspi.kz/yml/product-view/pl/results',config);
+    const body=upstream.data;
+    if(upstream.status!==200 || !body || !Array.isArray(body.data)) {
+      return res.status(upstream.status===429?429:502).json({ok:false,
+        error:'catalog_response_unavailable',upstreamStatus:upstream.status,
+        bodyPreview:typeof body==='string'?body.slice(0,500):body});
+    }
+    const products=body.data.map(p=>({productId:p.id==null?null:String(p.id),
+      name:p.title||null,shopLink:p.shopLink||null,
+      listingPrice:p.unitSalePrice??p.unitPrice??null,
+      bestMerchant:p.bestMerchant==null?null:String(p.bestMerchant),
+      merchantSku:null}));
+    return res.json({ok:true,experimental:true,merchantId,cityId,page:0,
+      elapsedMs:Date.now()-started,count:products.length,
+      warning:'Одна страница городской витрины. Полнота каталога не проверена. Артикул продавца не установлен. listingPrice не подтверждена как наша цена.',
+      products,raw:body});
+  } catch(e) {
+    return res.status(502).json({ok:false,error:'catalog_request_failed',code:e.code||null});
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Domplast Kaspi Railway test listening on :${PORT}`);
   console.log(`Proxy configured: ${Boolean(UPSTREAM_PROXY_URL)}`);
