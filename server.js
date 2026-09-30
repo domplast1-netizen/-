@@ -1,7 +1,7 @@
 'use strict';
 
 // Domplast Kaspi Railway: full, standalone server.js
-// Version: catalog-probe-2026-09-30-v3
+// Version: catalog-separated-2026-09-30-v5 (SKU fix: verify offers limit 50)
 // Express + axios + https-proxy-agent (optional proxy)
 // Read-only diagnostic endpoints; does not alter Kaspi or Google Sheets.
 
@@ -14,6 +14,8 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
 const VERSION = 'catalog-separated-2026-09-30-v5';
+const BUILD = 'sku-limit50-fix-2026-09-30';
+const VERIFY_OFFERS_LIMIT = 50;
 const PORT = Number(process.env.PORT || 8080);
 const API_KEY = String(process.env.API_KEY || '').trim();
 const UPSTREAM_PROXY_URL = String(process.env.UPSTREAM_PROXY_URL || '').trim();
@@ -158,6 +160,8 @@ app.get('/health', (req, res) => {
     ok: true,
     service: 'domplast-kaspi-railway-test',
     version: VERSION,
+    build: BUILD,
+    verifyOffersLimit: VERIFY_OFFERS_LIMIT,
     routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe', '/catalog-scan-page', '/catalog-verify-own', '/catalog-list-page'],
     proxyConfigured: Boolean(UPSTREAM_PROXY_URL),
     railway: {
@@ -339,7 +343,7 @@ function extractOwnOffer(offers, merchantId) {
   } : { merchantFound: false, merchantSku: null, ourPrice: null };
 }
 async function verifyOurOffer(productId, merchantId, cityId) {
-  const result = await fetchOffers(productId, cityId, 100);
+  const result = await fetchOffers(productId, cityId, VERIFY_OFFERS_LIMIT);
   if (result.status !== 200 || !Array.isArray(result.data?.offers)) {
     return { state: 'ERROR', error: 'offers_http_' + result.status, upstreamStatus: result.status,
       bodyPreview: typeof result.data === 'string' ? result.data.slice(0, 320) :
@@ -349,8 +353,8 @@ async function verifyOurOffer(productId, merchantId, cityId) {
   const own = extractOwnOffer(offers, merchantId);
   return { state: own.merchantFound ? 'CONFIRMED' : 'NOT_CONFIRMED',
     ...own, offersCount: offers.length,
-    // Absence from a 100-item offer window is NOT proof of delisting.
-    possiblyTruncated: offers.length >= 100 };
+    // Absence from this offer window is NOT proof of delisting.
+    possiblyTruncated: offers.length >= VERIFY_OFFERS_LIMIT };
 }
 function safeProduct(p) {
   return { productId: p.productId, name: p.name, shopLink: p.shopLink,
