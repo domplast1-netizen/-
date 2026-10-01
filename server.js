@@ -13,13 +13,13 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
-const VERSION = 'catalog-batchverify-2026-10-01-v6';
-const BUILD = 'fast-batch-sku-price-v1';
+const VERSION = 'catalog-batchverify-2026-10-01-v6.1';
+const BUILD = 'safe-sequential-sku-price-v1';
 const VERIFY_OFFERS_LIMIT = 50;
-const BATCH_VERIFY_MAX = 24;
-const BATCH_VERIFY_DEFAULT_CONCURRENCY = 3;
-const BATCH_VERIFY_MAX_CONCURRENCY = 5;
-const BATCH_VERIFY_DELAY_MS = Math.max(0, Math.min(3000, Number(process.env.VERIFY_BATCH_DELAY_MS) || 450));
+const BATCH_VERIFY_MAX = 12;
+const BATCH_VERIFY_DEFAULT_CONCURRENCY = 1;
+const BATCH_VERIFY_MAX_CONCURRENCY = 1;
+const BATCH_VERIFY_DELAY_MS = Math.max(1500, Math.min(10000, Number(process.env.VERIFY_BATCH_DELAY_MS) || 2500));
 const PORT = Number(process.env.PORT || 8080);
 const API_KEY = String(process.env.API_KEY || '').trim();
 const UPSTREAM_PROXY_URL = String(process.env.UPSTREAM_PROXY_URL || '').trim();
@@ -432,9 +432,9 @@ app.get('/catalog-verify-own', requireKey, async (req,res) => {
   }
 });
 
-// V6: batch SKU/price verification for already collected Product IDs.
+// V6.1: safe sequential SKU/price verification for already collected Product IDs.
 // This endpoint does NOT scan catalog pages and does NOT write to Google Sheets.
-// It stops assigning new work if Kaspi starts returning 403/429; completed results are still returned.
+// Exactly one Kaspi /offers request runs at a time. Stops immediately on 403/429; completed results are returned.
 app.post('/catalog-verify-batch', requireKey, async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const merchantId = String(req.body?.merchantId || DEFAULT_MERCHANT).trim();
