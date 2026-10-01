@@ -13,9 +13,13 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
-const VERSION = 'catalog-separated-2026-09-30-v5';
-const BUILD = 'sku-limit50-fix-2026-09-30';
+const VERSION = 'catalog-batchverify-2026-10-01-v6';
+const BUILD = 'fast-batch-sku-price-v1';
 const VERIFY_OFFERS_LIMIT = 50;
+const BATCH_VERIFY_MAX = 24;
+const BATCH_VERIFY_DEFAULT_CONCURRENCY = 3;
+const BATCH_VERIFY_MAX_CONCURRENCY = 5;
+const BATCH_VERIFY_DELAY_MS = Math.max(0, Math.min(3000, Number(process.env.VERIFY_BATCH_DELAY_MS) || 450));
 const PORT = Number(process.env.PORT || 8080);
 const API_KEY = String(process.env.API_KEY || '').trim();
 const UPSTREAM_PROXY_URL = String(process.env.UPSTREAM_PROXY_URL || '').trim();
@@ -73,6 +77,10 @@ function publicError(error) {
     code: error.code || null,
     message: String(error.message || error).slice(0, 240)
   };
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function fetchOffers(productId, cityId, limit = 50) {
@@ -162,7 +170,10 @@ app.get('/health', (req, res) => {
     version: VERSION,
     build: BUILD,
     verifyOffersLimit: VERIFY_OFFERS_LIMIT,
-    routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe', '/catalog-scan-page', '/catalog-verify-own', '/catalog-list-page'],
+    batchVerifyMax: BATCH_VERIFY_MAX,
+    batchVerifyDefaultConcurrency: BATCH_VERIFY_DEFAULT_CONCURRENCY,
+    batchVerifyDelayMs: BATCH_VERIFY_DELAY_MS,
+    routes: ['/health', '/offers', '/catalog', '/catalog-test', '/catalog-page-probe', '/catalog-scan-page', '/catalog-verify-own', '/catalog-list-page', '/catalog-verify-batch'],
     proxyConfigured: Boolean(UPSTREAM_PROXY_URL),
     railway: {
       environment: process.env.RAILWAY_ENVIRONMENT_NAME || null,
@@ -421,6 +432,81 @@ app.get('/catalog-verify-own', requireKey, async (req,res) => {
   }
 });
 
+// V6: batch SKU/price verification for already collected Product IDs.
+// This endpoint does NOT scan catalog pages and does NOT write to Google Sheets.
+// It stops assigning new work if Kaspi starts returning 403/429; completed results are still returned.
+app.post('/catalog-verify-batch', requireKey, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const merchantId = String(req.body?.merchantId || DEFAULT_MERCHANT).trim();
+  const cityId = String(req.body?.cityId || DEFAULT_CITY).trim();
+  const requestedConcurrency = boundedInt(req.body?.concurrency, BATCH_VERIFY_DEFAULT_CONCURRENCY, 1, BATCH_VERIFY_MAX_CONCURRENCY);
+  const rawIds = Array.isArray(req.body?.productIds) ? req.body.productIds : [];
+
+  if (!validId(merchantId) || !validId(cityId, 6, 15)) {
+    return res.status(400).json({ok:false,error:'invalid_merchant_or_city'});
+  }
+  if (!rawIds.length) return res.status(400).json({ok:false,error:'empty_product_ids'});
+
+  const seen = new Set();
+  const productIds = [];
+  for (const raw of rawIds) {
+    const id = String(raw ?? '').trim();
+    if (!validId(id, 6, 15)) return res.status(400).json({ok:false,error:'invalid_product_id',productId:id});
+    if (!seen.has(id)) { seen.add(id); productIds.push(id); }
+    if (productIds.length >= BATCH_VERIFY_MAX) break;
+  }
+
+  const started = Date.now();
+  const results = new Array(productIds.length);
+  let cursor = 0;
+  let throttled = false;
+  let throttleStatus = null;
+
+  async function worker() {
+    while (true) {
+      if (throttled) return;
+      const index = cursor++;
+      if (index >= productIds.length) return;
+      const productId = productIds[index];
+      try {
+        const result = await verifyOurOffer(productId, merchantId, cityId);
+        results[index] = {productId, ...result};
+        if (result.state === 'ERROR' && (result.upstreamStatus === 403 || result.upstreamStatus === 429)) {
+          throttled = true;
+          throttleStatus = result.upstreamStatus;
+          return;
+        }
+      } catch (error) {
+        const status = Number(error.response?.status || 0) || null;
+        results[index] = {productId,state:'ERROR',error:'verify_exception',upstreamStatus:status,...publicError(error)};
+        if (status === 403 || status === 429) {
+          throttled = true;
+          throttleStatus = status;
+          return;
+        }
+      }
+      if (BATCH_VERIFY_DELAY_MS > 0) await sleep(BATCH_VERIFY_DELAY_MS);
+    }
+  }
+
+  await Promise.all(Array.from({length: requestedConcurrency}, () => worker()));
+  const completed = results.filter(Boolean);
+  const confirmed = completed.filter(x => x.state === 'CONFIRMED' && x.merchantSku).length;
+  const errors = completed.filter(x => x.state === 'ERROR').length;
+  const notConfirmed = completed.filter(x => x.state === 'NOT_CONFIRMED').length;
+
+  return res.json({
+    ok:true, version:VERSION, build:BUILD, merchantId, cityId,
+    requested:productIds.length, processed:completed.length,
+    confirmed, notConfirmed, errors,
+    concurrency:requestedConcurrency, delayMs:BATCH_VERIFY_DELAY_MS,
+    throttled, throttleStatus,
+    elapsedMs:Date.now()-started,
+    results:completed,
+    note:'Batch verifies existing Product IDs only. CONFIRMED merchantSku/ourPrice belong to requested merchant. NOT_CONFIRMED is not proof of delisting.'
+  });
+});
+
 // NEW V5: listing-only page. Makes ZERO /offers requests.
 // Public merchant-filtered search is experimental and does not prove complete inventory.
 app.get('/catalog-list-page', requireKey, async (req, res) => {
@@ -447,7 +533,8 @@ app.get('/catalog-list-page', requireKey, async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`DOMPLAST SERVER VERSION: ${VERSION}`);
+  console.log(`DOMPLAST SERVER VERSION: ${VERSION} / ${BUILD}`);
   console.log(`Listening on port ${PORT}`);
   console.log(`Proxy configured: ${Boolean(UPSTREAM_PROXY_URL)}`);
+  console.log(`Batch verify: max=${BATCH_VERIFY_MAX}, concurrency=${BATCH_VERIFY_DEFAULT_CONCURRENCY}, delayMs=${BATCH_VERIFY_DELAY_MS}, offersLimit=${VERIFY_OFFERS_LIMIT}`);
 });
